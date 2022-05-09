@@ -3,7 +3,7 @@
 
 #include "../Framework2/Util/OpenGLModel.h"
 #include "../Framework2/OpenGL/OpenGLRenderer.h"
-#include "../Framework2/Util/ParticleSystem.h"
+#include "ParticleSystem.h"
 
 struct Light {
 	ParticleSystem *particles;
