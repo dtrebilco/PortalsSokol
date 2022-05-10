@@ -1,3 +1,4 @@
+#if 0
 #include "../Framework2/OpenGL/OpenGLApp.h"
 #include "Portals.h"
 
@@ -215,3 +216,5 @@ bool MainApp::drawFrame(){
 }
 
 App *app = new MainApp();
+
+#endif

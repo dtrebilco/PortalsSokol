@@ -1,3 +1,5 @@
+#if 0
+
 /***********      .---.         .-"-.      *******************\
 * -------- *     /   ._.       / ´ ` \     * ---------------- *
 * Author's *     \_  (__\      \_°v°_/     * humus@rogers.com *
@@ -334,3 +336,4 @@ void ParticleSystem::fillIndexArray(unsigned short *dest){
 		*dest++ = 4 * i + 2;
 	}
 }
+#endif

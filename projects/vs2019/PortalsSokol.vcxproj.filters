@@ -6,6 +6,9 @@
     <ClCompile Include="..\..\source\external\sokol.c">
       <Filter>external</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\source\Main.cpp" />
+    <ClCompile Include="..\..\source\ParticleSystem.cpp" />
+    <ClCompile Include="..\..\source\Portals.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\source\game.h" />
@@ -21,6 +24,8 @@
     <ClInclude Include="..\..\source\external\stb_image.h">
       <Filter>external</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\source\Portals.h" />
+    <ClInclude Include="..\..\source\ParticleSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="external">

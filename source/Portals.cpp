@@ -1,3 +1,5 @@
+#if 0
+
 #include "Portals.h"
 
 Sector::Sector(OpenGLModel *roomModel){
@@ -186,3 +188,4 @@ void Sector::drawParticles(Renderer *renderer, TextureID particle){
 		}
 	}
 }
+#endif

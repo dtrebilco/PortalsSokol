@@ -23,6 +23,7 @@ static uint64_t time;
 
 typedef struct {
     float aspect;
+    float dummy[3];
 } vs_params_t;
 
 void init(void) {
@@ -51,11 +52,20 @@ void init(void) {
         .vs.uniform_blocks[0] = {
             .size = sizeof(vs_params_t)
         },
-        .attrs[0] = { .sem_name = "POSSCALE" },
-        .attrs[1] = { .sem_name = "COLORSPRITE"},
+        .attrs[0] = { .name = "posScale" },
+        .attrs[1] = { .name = "colorIndex" },
+        .fs.images[0].name = "tex0",
         .fs.images[0].image_type = SG_IMAGETYPE_2D,
+        .fs.images[0].sampler_type = SG_SAMPLERTYPE_FLOAT,
+        .vs.uniform_blocks[0].size = 16,
+        .vs.uniform_blocks[0].layout = SG_UNIFORMLAYOUT_STD140,
+        .vs.uniform_blocks[0].uniforms[0].name = "vs_params",
+        .vs.uniform_blocks[0].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4,
+        .vs.uniform_blocks[0].uniforms[0].array_count = 1,
         .vs.source = vs_src,
+        .vs.entry = "main",
         .fs.source = fs_src,
+        .fs.entry = "main",
     });
     
     /* create an image */
@@ -270,6 +280,40 @@ const char* fs_src =
     "  diffuse.rgb *= inp.color.rgb;\n"
     "  return diffuse;\n"
     "}\n";
+#elif defined(SOKOL_GLCORE33)
+const char* vs_src =
+"#version 330\n"
+"//uniform params {\n"
+"//  float aspect;\n"
+"//};\n"
+"uniform vec4 vs_params[1];\n"
+"layout(location = 0) in vec4 posScale;\n"
+"layout(location = 1) in vec4 colorIndex;\n"
+"out vec2 uv;\n"
+"out vec3 color;\n"
+"void main() {\n"
+"  float x = gl_VertexID / 2;\n"
+"  float y = gl_VertexID & 1;\n"
+"  gl_Position.x = posScale.x + (x-0.5f) * posScale.z;\n"
+"  gl_Position.y = posScale.y + (y-0.5f) * posScale.z * vs_params[0].x;\n"
+"  gl_Position.z = 0.0f;\n"
+"  gl_Position.w = 1.0f;\n"
+"  uv = vec2((x + colorIndex.w)/8,1-y);\n"
+"  color = colorIndex.rgb;\n"
+"};\n";
+const char* fs_src =
+"#version 330\n"
+"layout(location = 0) out vec4 frag_color;\n"
+"in vec2 uv;\n"
+"in vec3 color;\n"
+"uniform sampler2D tex0;\n"
+"void main() {\n"
+"  frag_color = texture(tex0, uv);\n"
+"  float lum = dot(frag_color.rgb, vec3(0.333));\n"
+"  frag_color.rgb = mix(frag_color.rgb, vec3(lum), 0.8);\n"
+"  frag_color.rgb *= color.rgb;\n"
+"}\n";
+
 #else
 #error Unknown graphics plaform
 #endif
