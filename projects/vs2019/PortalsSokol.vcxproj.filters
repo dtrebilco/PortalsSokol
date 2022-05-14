@@ -9,6 +9,7 @@
     <ClCompile Include="..\..\source\ParticleSystem.cpp" />
     <ClCompile Include="..\..\source\Portals.cpp" />
     <ClCompile Include="..\..\source\application.cpp" />
+    <ClCompile Include="..\..\source\Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\source\game.h" />
@@ -26,6 +27,7 @@
     </ClInclude>
     <ClInclude Include="..\..\source\Portals.h" />
     <ClInclude Include="..\..\source\ParticleSystem.h" />
+    <ClInclude Include="..\..\source\Vector.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="external">
