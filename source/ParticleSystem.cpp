@@ -1,5 +1,3 @@
-#if 0
-
 /***********      .---.         .-"-.      *******************\
 * -------- *     /   ._.       / ´ ` \     * ---------------- *
 * Author's *     \_  (__\      \_°v°_/     * humus@rogers.com *
@@ -16,8 +14,9 @@
 \*********************************************************************/
 
 #include "ParticleSystem.h"
-//#include <stdlib.h>
-//#include <math.h>
+#include <stdlib.h>
+#include <math.h>
+#include <algorithm>
 
 float random(float mean, float diff){
 	float r = 2 * (rand() / float(RAND_MAX)) - 1.0f;
@@ -128,20 +127,20 @@ void ParticleSystem::update(const float timeStamp){
 
 	for (i = 0; i < len; i++){
 		initParticle(p);
-		particles.add(p);
+		particles.push_back(p);
 	}
 
 	friction = powf(frictionFactor, time);
 
 	i = 0;
-	while (i < particles.getCount()){
+	while (i < particles.size()){
 		if ((particles[i].life -= time) < 0){
-			particles.remove(i);
+			particles.erase(particles.begin() + i);
 			continue;
 		}
 
 		vec3 v(0, 0, 0);
-		for (j = 0; j < pointForces.getCount(); j++){
+		for (j = 0; j < pointForces.size(); j++){
 			vec3 dir = pointForces[j].pos - particles[i].pos;
 			dist = dot(dir, dir);
 			v += dir * (pointForces[j].strength / (1.0f + sqrtf(dist) * pointForces[j].linearAttenuation + dist * pointForces[j].quadraticAttenuation));
@@ -163,22 +162,23 @@ void ParticleSystem::updateTime(const float timeStamp){
 }
 
 int depthComp(const Particle &elem0, const Particle &elem1){
-	return (elem0.depth < elem1.depth)? 1 : -1;
+	return (elem0.depth < elem1.depth);
 }
 
 void ParticleSystem::depthSort(const vec3 &pos, const vec3 &depthAxis){
-	for (unsigned int i = 0; i < particles.getCount(); i++){
-		particles[i].depth = fabsf(dot(particles[i].pos - pos, * depthAxis));
+	for (unsigned int i = 0; i < particles.size(); i++){
+		particles[i].depth = fabsf(dot(particles[i].pos - pos, depthAxis));
 	}
 	
-	particles.sort(depthComp);
+	std::sort(particles.begin(), particles.end(), depthComp);
+	//particles.sort(depthComp);
 }
 
 char *ParticleSystem::getVertexArray(const vec3 &dx, const vec3 &dy, bool useColors, bool tex3d){
 	unsigned int vertexSize = sizeof(vec3) + sizeof(vec2);
 	if (useColors) vertexSize += sizeof(vec4);
 	if (tex3d) vertexSize += sizeof(float);
-	unsigned int size = particles.getCount() * vertexSize * 4;
+	unsigned int size = (unsigned int)particles.size() * vertexSize * 4;
 
 	if (size > vertexArraySize){
 		delete vertexArray;
@@ -194,7 +194,7 @@ char *ParticleSystem::getVertexArray(const vec3 &dx, const vec3 &dy, bool useCol
 char *ParticleSystem::getPointSpriteArray(bool useColors){
 	unsigned int vertexSize = sizeof(vec3) + sizeof(float);
 	if (useColors) vertexSize += sizeof(vec4);
-	unsigned int size = vertexSize * particles.getCount();
+	unsigned int size = vertexSize * (unsigned int)particles.size();
 
 	if (size > vertexArraySize){
 		delete vertexArray;
@@ -203,7 +203,7 @@ char *ParticleSystem::getPointSpriteArray(bool useColors){
 	}
 
 	char *dest = vertexArray;
-	for (unsigned int i = 0; i < particles.getCount(); i++){
+	for (unsigned int i = 0; i < particles.size(); i++){
 		*(vec3 *) dest = particles[i].pos;
 		dest += sizeof(vec3);
 		*(float *) dest = particles[i].size;
@@ -225,7 +225,7 @@ char *ParticleSystem::getPointSpriteArray(bool useColors){
 }
 
 unsigned short *ParticleSystem::getIndexArray(){
-	unsigned int size = particles.getCount() * 6;
+	unsigned int size = (unsigned int)particles.size() * 6;
 
 	if (size > indexArraySize){
 		delete indexArray;
@@ -244,7 +244,7 @@ void ParticleSystem::fillVertexArray(char *dest, const vec3 &dx, const vec3 &dy,
 
 	float frac = 0;
 	vec4 color;
-	for (unsigned int i = 0; i < particles.getCount(); i++){
+	for (unsigned int i = 0; i < particles.size(); i++){
 		if (useColors || tex3d)
 			frac = particles[i].life * particles[i].invInitialLife;
 //			frac = particles[i].life / particles[i].initialLife;
@@ -290,8 +290,8 @@ void ParticleSystem::fillVertexArray(char *dest, const vec3 &dx, const vec3 &dy,
 }
 
 void ParticleSystem::fillInstanceVertexArray(char *dest){
-	Particle *part = particles.getArray();
-	for (unsigned int i = 0; i < particles.getCount(); i++){
+	Particle *part = particles.data();
+	for (unsigned int i = 0; i < particles.size(); i++){
 		*(vec3 *) dest = part->pos;
 		dest += sizeof(vec3);
 		*(float *) dest = part->size;
@@ -309,7 +309,7 @@ void ParticleSystem::fillInstanceVertexArray(char *dest){
 }
 
 void ParticleSystem::fillInstanceVertexArrayRange(vec4 *posAndSize, vec4 *color, const unsigned int start, unsigned int count){
-	Particle *part = particles.getArray() + start;
+	Particle *part = particles.data() + start;
 
 	for (unsigned int i = 0; i < count; i++){
 		*(vec3 *) posAndSize = part->pos;
@@ -327,7 +327,7 @@ void ParticleSystem::fillInstanceVertexArrayRange(vec4 *posAndSize, vec4 *color,
 }
 
 void ParticleSystem::fillIndexArray(unsigned short *dest){
-	for (unsigned int i = 0; i < particles.getCount(); i++){
+	for (unsigned int i = 0; i < particles.size(); i++){
 		*dest++ = 4 * i;
 		*dest++ = 4 * i + 1;
 		*dest++ = 4 * i + 3;
@@ -336,4 +336,3 @@ void ParticleSystem::fillIndexArray(unsigned short *dest){
 		*dest++ = 4 * i + 2;
 	}
 }
-#endif

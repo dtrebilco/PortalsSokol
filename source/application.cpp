@@ -115,7 +115,6 @@ sg_image create_texture(const char *filename, const sg_image_desc& img_desc) {
   }
   // DT_TODO: Fail if cannot create requested mips?
 
-
   sg_image tex = sg_make_image(local_desc);
   stbi_image_free(texData);
 

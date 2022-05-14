@@ -16,8 +16,8 @@
 #ifndef _PARTICLESYSTEM_H_
 #define _PARTICLESYSTEM_H_
 
-#include "../Math/Vector.h"
-#include "Set.h"
+#include "Vector.h"
+#include <vector>
 
 enum COLOR_SCHEME {
 	COLOR_SCHEME_FIRE,
@@ -56,7 +56,7 @@ public:
 	virtual ~ParticleSystem();
 
 	const vec3 &getPosition() const { return pos; }
-	unsigned int getParticleCount() const { return particles.getCount(); }
+	unsigned int getParticleCount() const { return (int)particles.size(); }
 	void setPosition(const vec3 &position){ pos = position; }
 	void setSpawnRate(const float spawnrate){ spawnRate = spawnrate; }
 
@@ -76,7 +76,7 @@ public:
 	}
 
 	void setDirectionalForce(const vec3 &df){ directionalForce = df; }
-	void addPointForce(const PointForce &pf){ pointForces.add(pf); }
+	void addPointForce(const PointForce &pf){ pointForces.push_back(pf); }
 	void setPointForce(const int force, const PointForce &pf){ pointForces[force] = pf;	}
 	void setFrictionFactor(const float friction){ frictionFactor = friction; }
 
@@ -102,8 +102,8 @@ protected:
 	virtual void initParticle(Particle &p);
 	virtual void updateParticle(Particle &p, const float time);
 
-	Set <Particle> particles;
-	Set <PointForce> pointForces;
+	std::vector <Particle> particles;
+	std::vector <PointForce> pointForces;
 	vec3 directionalForce;
 	
 	float lastTime, particleCredit;
