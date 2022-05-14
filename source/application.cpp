@@ -35,6 +35,92 @@ typedef struct {
     float dummy[3];
 } vs_params_t;
 
+bool is_power2(unsigned int v) {
+  return v && ((v & (v - 1)) == 0);
+}
+
+int get_mipmap_count(int width, int height) {
+  int max = (width > height) ? width : height;
+  int i = 0;
+
+  while (max > 0) {
+    max >>= 1;
+    i++;
+  }
+
+  return i;
+}
+
+void build_mipmapRGBA8(unsigned char* dest, unsigned char* src, int width, int height) {
+  int xOff = (width < 2) ? 0 : 4;
+  int yOff = (height < 2) ? 0 : width * 4;
+
+  for (int y = 0; y < height; y += 2) {
+    for (int x = 0; x < width; x += 2) {
+      for (int i = 0; i < 4; i++) {
+        *dest = ((src[0] + src[xOff] + src[yOff] + src[yOff + xOff]) + 2) >> 2;
+        dest++;
+        src++;
+      }
+      src += xOff;
+    }
+    src += yOff;
+  }
+}
+
+sg_image create_texture(const char *filename, const sg_image_desc& img_desc, bool b_gen_mipmaps = true) {
+
+  sg_image_desc local_desc = img_desc;
+  int texN = 0;
+  uint8_t* texData = stbi_load(filename, &local_desc.width, &local_desc.height, &texN, 4);
+  if (texData == nullptr) {
+    return sg_image{};
+  }
+
+  // If bumpmap->normalmap, convert here
+
+  // Create mip maps if needed
+  local_desc.data.subimage[0][0] = { .ptr = texData, .size = size_t(local_desc.width) * local_desc.height * 4 };
+  if (b_gen_mipmaps &&
+    is_power2(local_desc.width) &&
+    is_power2(local_desc.height)) {
+
+    local_desc.min_filter = SG_FILTER_LINEAR_MIPMAP_NEAREST;
+
+    int mip_count = get_mipmap_count(local_desc.width, local_desc.height);
+    if (mip_count <= SG_MAX_MIPMAPS) {
+      local_desc.num_mipmaps = mip_count;
+
+      int w = local_desc.width;
+      int h = local_desc.height;
+      for (int i = 1; i < mip_count; i++) {
+        int old_w = w;
+        int old_h = h;
+
+        if (w > 1) { w >>= 1; }
+        if (h > 1) { h >>= 1; }
+
+        size_t newSize = size_t(w) * h * 4;
+        local_desc.data.subimage[0][i] = { .ptr = malloc(newSize), .size = newSize };
+
+        build_mipmapRGBA8((unsigned char*)local_desc.data.subimage[0][i].ptr, 
+                          (unsigned char*)local_desc.data.subimage[0][i - 1].ptr, old_w, old_h);
+      }
+    }
+  }
+
+  sg_image tex = sg_make_image(local_desc);
+  stbi_image_free(texData);
+
+  // Free allocated mipmaps
+  for (int i = 1; i < local_desc.num_mipmaps; i++)
+  {
+    free((void*)local_desc.data.subimage[0][i].ptr);
+  }
+
+  return tex;
+}
+
 void init(void) {
 
     sg_setup(sg_desc{ .context = sapp_sgcontext() });
@@ -77,20 +163,15 @@ void init(void) {
     sg_shader shd = sg_make_shader(shaderDesc);
     
     // create an image 
-    int texX = 0, texY = 0, texN = 0;
-    uint8_t* texData = stbi_load("data/sprites.png", &texX, &texY, &texN, 4);
+    sg_image_desc imageDesc = {
+      .min_filter = SG_FILTER_LINEAR,
+      .mag_filter = SG_FILTER_LINEAR,
+      .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
+      .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
+    };
+    //sg_image tex = create_texture("data/sprites.png", imageDesc);
 
-    sg_image_desc imageDesc = {};
-    imageDesc.width = texX;
-    imageDesc.height = texY;
-    imageDesc.min_filter = SG_FILTER_LINEAR;
-    imageDesc.mag_filter = SG_FILTER_LINEAR;
-    imageDesc.wrap_u = SG_WRAP_CLAMP_TO_EDGE;
-    imageDesc.wrap_v = SG_WRAP_CLAMP_TO_EDGE;
-    imageDesc.data.subimage[0][0] = { .ptr = texData, .size = size_t(texX) * texY * 4 };
-
-    sg_image tex = sg_make_image(imageDesc);
-    stbi_image_free(texData);
+    sg_image tex = create_texture("data/laying_rock7Bump.png", imageDesc);
 
     // create pipeline object
     sg_pipeline_desc pipDesc = {};
@@ -306,6 +387,7 @@ const char* vs_src =
 "  gl_Position.z = 0.0f;\n"
 "  gl_Position.w = 1.0f;\n"
 "  uv = vec2((x + colorIndex.w)/8,1-y);\n"
+"  uv = vec2(x,1-y);\n"
 "  color = colorIndex.rgb;\n"
 "};\n";
 const char* fs_src =
