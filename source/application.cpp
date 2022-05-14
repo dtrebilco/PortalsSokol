@@ -39,6 +39,13 @@ bool is_power2(unsigned int v) {
   return v && ((v & (v - 1)) == 0);
 }
 
+bool is_mipmap_filter(sg_filter filter) {
+  return (filter == SG_FILTER_NEAREST_MIPMAP_NEAREST ||
+          filter == SG_FILTER_NEAREST_MIPMAP_LINEAR ||
+          filter == SG_FILTER_LINEAR_MIPMAP_NEAREST ||
+          filter == SG_FILTER_LINEAR_MIPMAP_LINEAR);
+}
+
 int get_mipmap_count(int width, int height) {
   int max = (width > height) ? width : height;
   int i = 0;
@@ -68,7 +75,7 @@ void build_mipmapRGBA8(unsigned char* dest, unsigned char* src, int width, int h
   }
 }
 
-sg_image create_texture(const char *filename, const sg_image_desc& img_desc, bool b_gen_mipmaps = true) {
+sg_image create_texture(const char *filename, const sg_image_desc& img_desc) {
 
   sg_image_desc local_desc = img_desc;
   int texN = 0;
@@ -81,11 +88,9 @@ sg_image create_texture(const char *filename, const sg_image_desc& img_desc, boo
 
   // Create mip maps if needed
   local_desc.data.subimage[0][0] = { .ptr = texData, .size = size_t(local_desc.width) * local_desc.height * 4 };
-  if (b_gen_mipmaps &&
+  if (is_mipmap_filter(local_desc.min_filter) &&
     is_power2(local_desc.width) &&
     is_power2(local_desc.height)) {
-
-    local_desc.min_filter = SG_FILTER_LINEAR_MIPMAP_NEAREST;
 
     int mip_count = get_mipmap_count(local_desc.width, local_desc.height);
     if (mip_count <= SG_MAX_MIPMAPS) {
@@ -108,6 +113,8 @@ sg_image create_texture(const char *filename, const sg_image_desc& img_desc, boo
       }
     }
   }
+  // DT_TODO: Fail if cannot create requested mips?
+
 
   sg_image tex = sg_make_image(local_desc);
   stbi_image_free(texData);
@@ -164,7 +171,7 @@ void init(void) {
     
     // create an image 
     sg_image_desc imageDesc = {
-      .min_filter = SG_FILTER_LINEAR,
+      .min_filter = SG_FILTER_LINEAR_MIPMAP_NEAREST,
       .mag_filter = SG_FILTER_LINEAR,
       .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
       .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
