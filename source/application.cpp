@@ -11,6 +11,7 @@ extern "C" __declspec(dllimport) void __stdcall OutputDebugStringA(const char* l
 #endif
 
 #include "game.h"
+#include <vector>
 
 extern const char *vs_src, *fs_src;
 
@@ -127,6 +128,95 @@ sg_image create_texture(const char *filename, const sg_image_desc& img_desc) {
   return tex;
 }
 
+enum PrimitiveType {
+  PRIM_TRIANGLES = 0,
+  PRIM_QUADS = 1,
+  PRIM_TRIANGLE_STRIP = 2,
+  PRIM_LINES = 3,
+};
+
+enum AttributeType {
+  ATT_VERTEX = 0,
+  ATT_NORMAL = 1,
+  ATT_TEXCOORD = 2,
+  ATT_COLOR = 3,
+};
+
+enum AttributeFormat {
+  ATT_FLOAT = 0,
+  ATT_UNSIGNED_BYTE = 1,
+};
+
+struct Format {
+  AttributeType attType;
+  AttributeFormat attFormat;
+  unsigned int size;
+  unsigned int offset;
+  unsigned int index;
+};
+
+struct Batch
+{
+  char* vertices;
+  char* indices;
+
+  unsigned int nVertices;
+  unsigned int nIndices;
+  unsigned int vertexSize;
+  unsigned int indexSize;
+
+  std::vector<Format> formats;
+  PrimitiveType primitiveType;
+};
+
+struct Model
+{
+  std::vector<Batch> batches;
+};
+
+void read_batch_from_file(FILE* file, Batch& batch) {
+  fread(&batch.nVertices, sizeof(batch.nVertices), 1, file);
+  fread(&batch.nIndices, sizeof(batch.nIndices), 1, file);
+  fread(&batch.vertexSize, sizeof(batch.vertexSize), 1, file);
+  fread(&batch.indexSize, sizeof(batch.indexSize), 1, file);
+
+  fread(&batch.primitiveType, sizeof(batch.primitiveType), 1, file);
+
+  unsigned int nFormats;
+  fread(&nFormats, sizeof(nFormats), 1, file);
+  batch.formats.resize(nFormats);
+  fread(batch.formats.data(), nFormats * sizeof(Format), 1, file);
+
+  batch.vertices = new char[batch.nVertices * batch.vertexSize];
+  fread(batch.vertices, batch.nVertices * batch.vertexSize, 1, file);
+
+  if (batch.nIndices > 0) {
+    batch.indices = new char[batch.nIndices * batch.indexSize];
+    fread(batch.indices, batch.nIndices * batch.indexSize, 1, file);
+  }
+  else batch.indices = NULL;
+}
+
+bool load_model_from_file(const char* fileName, Model& ret_model) {
+  FILE* file = fopen(fileName, "rb");
+  if (file == NULL) return false;
+
+  uint32_t version;
+  fread(&version, sizeof(version), 1, file);
+  uint32_t nBatches;
+  fread(&nBatches, sizeof(nBatches), 1, file);
+
+  for (unsigned int i = 0; i < nBatches; i++) {
+    Batch batch = {};
+    read_batch_from_file(file, batch);
+    ret_model.batches.push_back(batch);
+  }
+
+  fclose(file);
+  return true;
+}
+
+
 void init(void) {
 
     sg_setup(sg_desc{ .context = sapp_sgcontext() });
@@ -178,6 +268,13 @@ void init(void) {
     //sg_image tex = create_texture("data/sprites.png", imageDesc);
 
     sg_image tex = create_texture("data/laying_rock7Bump.png", imageDesc);
+
+    Model models[5];
+    load_model_from_file("data/room0.hmdl", models[0]);
+    load_model_from_file("data/room0.hmdl", models[1]);
+    load_model_from_file("data/room0.hmdl", models[2]);
+    load_model_from_file("data/room0.hmdl", models[3]);
+    load_model_from_file("data/room0.hmdl", models[4]);
 
     // create pipeline object
     sg_pipeline_desc pipDesc = {};
