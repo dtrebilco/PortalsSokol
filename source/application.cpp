@@ -167,6 +167,9 @@ struct Batch
 
   std::vector<Format> formats;
   PrimitiveType primitiveType;
+
+  sg_buffer render_index;
+  sg_buffer render_vertex;
 };
 
 struct Model
@@ -197,6 +200,27 @@ void read_batch_from_file(FILE* file, Batch& batch) {
   else batch.indices = NULL;
 }
 
+bool make_model_renderable(Model& ret_model) {
+
+  for (Batch& batch : ret_model.batches) {
+    sg_range index_range = sg_range{ .ptr = batch.indices, .size = (batch.nIndices * batch.indexSize) };
+    batch.render_index = sg_make_buffer(sg_buffer_desc{
+        .type = SG_BUFFERTYPE_INDEXBUFFER,
+        .data = index_range,
+      });
+
+    sg_range vertex_range = sg_range{ .ptr = batch.vertices, .size = (batch.nVertices * batch.vertexSize) };
+    batch.render_vertex = sg_make_buffer(sg_buffer_desc{
+        .data = index_range,
+      });
+    if (batch.render_index.id == SG_INVALID_ID ||
+        batch.render_vertex.id == SG_INVALID_ID) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool load_model_from_file(const char* fileName, Model& ret_model) {
   FILE* file = fopen(fileName, "rb");
   if (file == NULL) return false;
@@ -213,9 +237,9 @@ bool load_model_from_file(const char* fileName, Model& ret_model) {
   }
 
   fclose(file);
-  return true;
-}
 
+  return make_model_renderable(ret_model);
+}
 
 void init(void) {
 
