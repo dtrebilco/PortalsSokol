@@ -11,6 +11,7 @@ extern "C" __declspec(dllimport) void __stdcall OutputDebugStringA(const char* l
 #endif
 
 #include "game.h"
+#include "Vector.h"
 #include <vector>
 
 extern const char *vs_src, *fs_src;
@@ -177,6 +178,71 @@ struct Model
   std::vector<Batch> batches;
 };
 
+float getValue(const char* src, const unsigned int index, const AttributeFormat attFormat) {
+  switch (attFormat) {
+  case ATT_FLOAT:         return *(((float*)src) + index);
+  case ATT_UNSIGNED_BYTE: return *(((unsigned char*)src) + index) * (1.0f / 255.0f);
+  default:
+    return 0;
+  }
+}
+
+void setValue(const char* dest, const unsigned int index, const AttributeFormat attFormat, float value) {
+  switch (attFormat) {
+  case ATT_FLOAT:
+    *(((float*)dest) + index) = value;
+    break;
+  case ATT_UNSIGNED_BYTE:
+    *(((unsigned char*)dest) + index) = (unsigned char)(value * 255.0f);
+    break;
+  }
+}
+
+bool findAttribute(Batch& batch, const AttributeType attType, const unsigned int index, unsigned int* where) {
+  for (unsigned int i = 0; i < batch.formats.size(); i++) {
+    if (batch.formats[i].attType == attType && batch.formats[i].index == index) {
+      if (where != NULL) *where = i;
+      return true;
+    }
+  }
+  return false;
+}
+
+
+bool transform_batch(Batch& batch, const mat4& mat, const AttributeType attType, const unsigned int index) {
+  AttributeFormat format;
+  unsigned int i, j, offset, size;
+  if (!findAttribute(batch, attType, index, &offset)) return false;
+  size = batch.formats[offset].size;
+  format = batch.formats[offset].attFormat;
+  offset = batch.formats[offset].offset;
+
+  for (i = 0; i < batch.nVertices; i++) {
+    char* src = batch.vertices + i * batch.vertexSize + offset;
+
+    vec4 vec(0, 0, 0, 1);
+    for (j = 0; j < size; j++) {
+      vec.operator [](j) = getValue(src, j, format);
+    }
+    vec = mat * vec;
+    for (j = 0; j < size; j++) {
+      setValue(src, j, format, vec.operator [](j));
+    }
+  }
+
+  return true;
+}
+
+
+bool transform_model(Model& ret_model, const mat4& mat) {
+  for (Batch& batch : ret_model.batches) {
+    if (!transform_batch(batch, mat, ATT_VERTEX, 0)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void read_batch_from_file(FILE* file, Batch& batch) {
   fread(&batch.nVertices, sizeof(batch.nVertices), 1, file);
   fread(&batch.nIndices, sizeof(batch.nIndices), 1, file);
@@ -238,7 +304,7 @@ bool load_model_from_file(const char* fileName, Model& ret_model) {
 
   fclose(file);
 
-  return make_model_renderable(ret_model);
+  return true;
 }
 
 void init(void) {
@@ -294,11 +360,27 @@ void init(void) {
     sg_image tex = create_texture("data/laying_rock7Bump.png", imageDesc);
 
     Model models[5];
-    load_model_from_file("data/room0.hmdl", models[0]);
-    load_model_from_file("data/room0.hmdl", models[1]);
-    load_model_from_file("data/room0.hmdl", models[2]);
-    load_model_from_file("data/room0.hmdl", models[3]);
-    load_model_from_file("data/room0.hmdl", models[4]);
+
+    auto load_model = [](const char* filename, Model& model, vec3 offset) {
+      load_model_from_file(filename, model);
+
+      //mat4 mat(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+      //mat.translate(offset);
+      mat4 mat(
+        vec4(1.0, 0.0, 0.0, 0.0),
+        vec4(0.0, 1.0, 0.0, 0.0),
+        vec4(0.0, 0.0, 1.0, 0.0),
+        vec4(offset, 1.0));
+
+      transform_model(model, mat);
+      make_model_renderable(model);
+    };
+
+    load_model("data/room0.hmdl", models[0], vec3(0, 256, 0));
+    load_model("data/room0.hmdl", models[1], vec3(-384, 256, 3072));
+    load_model("data/room0.hmdl", models[2], vec3(1536, 256, 2688));
+    load_model("data/room0.hmdl", models[3], vec3(-1024, -768, 2688));
+    load_model("data/room0.hmdl", models[4], vec3(-2304, 256, 2688));
 
     // create pipeline object
     sg_pipeline_desc pipDesc = {};
@@ -529,6 +611,62 @@ const char* fs_src =
 "  frag_color.rgb = mix(frag_color.rgb, vec3(lum), 0.8);\n"
 "  frag_color.rgb *= color.rgb;\n"
 "}\n";
+
+const char* vs_src2 = R"(
+#version 330
+out vec2 texCoord;
+out vec3 lightVec;
+out vec3 viewVec;
+
+uniform vec3 lightPos;
+uniform vec3 camPos;
+
+void main() {
+  gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+
+  texCoord = gl_MultiTexCoord0.xy;
+
+  vec3 lVec = lightPos - gl_Vertex.xyz;
+  lightVec.x = dot(gl_MultiTexCoord1.xyz, lVec);
+  lightVec.y = dot(gl_MultiTexCoord2.xyz, lVec);
+  lightVec.z = dot(gl_MultiTexCoord3.xyz, lVec);
+
+  vec3 vVec = camPos - gl_Vertex.xyz;
+  viewVec.x = dot(gl_MultiTexCoord1.xyz, vVec);
+  viewVec.y = dot(gl_MultiTexCoord2.xyz, vVec);
+  viewVec.z = dot(gl_MultiTexCoord3.xyz, vVec);
+}
+)";
+
+const char* fs_src2 = R"(
+#version 330
+uniform sampler2D Base;
+uniform sampler2D Bump;
+
+uniform float invRadius;
+uniform float ambient;
+
+in vec2 texCoord;
+in vec3 lightVec;
+in vec3 viewVec;
+
+void main(){
+	vec4 base = texture(Base, texCoord);
+	vec3 bump = texture(Bump, texCoord).xyz * 2.0 - 1.0;
+
+	bump = normalize(bump);
+
+	float distSqr = dot(lightVec, lightVec);
+	vec3 lVec = lightVec * inversesqrt(distSqr);
+
+	float atten = clamp(1.0 - invRadius * sqrt(distSqr), 0.0, 1.0);
+	float diffuse = clamp(dot(lVec, bump), 0.0, 1.0);
+
+	float specular = pow(clamp(dot(reflect(normalize(-viewVec), bump), lVec), 0.0, 1.0), 16.0);
+	
+	gl_FragColor = ambient * base + (diffuse * base + 0.6 * specular) * atten;
+}
+)";
 
 #else
 #error Unknown graphics plaform
