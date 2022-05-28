@@ -15,6 +15,7 @@ extern "C" __declspec(dllimport) void __stdcall OutputDebugStringA(const char* l
 #include <vector>
 
 extern const char *vs_src, *fs_src;
+extern const char* vs_src2, * fs_src2;
 
 struct scene_data
 {
@@ -328,25 +329,28 @@ void init(void) {
     });
 
     // create shader
-    sg_shader_desc shaderDesc = {};
-    shaderDesc.vs.uniform_blocks[0] = {
-            .size = sizeof(vs_params_t)
-    };
-    shaderDesc.attrs[0] = { .name = "posScale" };
-    shaderDesc.attrs[1] = { .name = "colorIndex" };
-    shaderDesc.fs.images[0].name = "tex0";
-    shaderDesc.fs.images[0].image_type = SG_IMAGETYPE_2D;
-    shaderDesc.fs.images[0].sampler_type = SG_SAMPLERTYPE_FLOAT;
-    shaderDesc.vs.uniform_blocks[0].size = 16;
-    shaderDesc.vs.uniform_blocks[0].layout = SG_UNIFORMLAYOUT_STD140;
-    shaderDesc.vs.uniform_blocks[0].uniforms[0].name = "vs_params";
-    shaderDesc.vs.uniform_blocks[0].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;
-    shaderDesc.vs.uniform_blocks[0].uniforms[0].array_count = 1;
-    shaderDesc.vs.source = vs_src;
-    shaderDesc.vs.entry = "main"; 
-    shaderDesc.fs.source = fs_src;
-    shaderDesc.fs.entry = "main";
-    sg_shader shd = sg_make_shader(shaderDesc);
+    sg_shader shd = {};
+    {
+      sg_shader_desc shaderDesc = {};
+      shaderDesc.vs.uniform_blocks[0] = {
+              .size = sizeof(vs_params_t)
+      };
+      shaderDesc.attrs[0] = { .name = "posScale" };
+      shaderDesc.attrs[1] = { .name = "colorIndex" };
+      shaderDesc.fs.images[0].name = "tex0";
+      shaderDesc.fs.images[0].image_type = SG_IMAGETYPE_2D;
+      shaderDesc.fs.images[0].sampler_type = SG_SAMPLERTYPE_FLOAT;
+      shaderDesc.vs.uniform_blocks[0].size = 16;
+      shaderDesc.vs.uniform_blocks[0].layout = SG_UNIFORMLAYOUT_STD140;
+      shaderDesc.vs.uniform_blocks[0].uniforms[0].name = "vs_params";
+      shaderDesc.vs.uniform_blocks[0].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;
+      shaderDesc.vs.uniform_blocks[0].uniforms[0].array_count = 1;
+      shaderDesc.vs.source = vs_src;
+      shaderDesc.vs.entry = "main";
+      shaderDesc.fs.source = fs_src;
+      shaderDesc.fs.entry = "main";
+      shd = sg_make_shader(shaderDesc);
+    }
     
     // create an image 
     sg_image_desc imageDesc = {
@@ -356,6 +360,38 @@ void init(void) {
       .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
     };
     //sg_image tex = create_texture("data/sprites.png", imageDesc);
+
+    sg_shader shd2 = {};
+    {
+      sg_shader_desc shaderDesc = {};
+      shaderDesc.vs.uniform_blocks[0] = {
+              .size = sizeof(vs_params_t)
+      };
+      shaderDesc.attrs[0] = { .name = "position" };
+      shaderDesc.attrs[1] = { .name = "uv" };
+      shaderDesc.attrs[2] = { .name = "mat0" };
+      shaderDesc.attrs[3] = { .name = "mat1" };
+      shaderDesc.attrs[4] = { .name = "mat2" };
+
+      shaderDesc.vs.source = vs_src2;
+      shaderDesc.vs.entry = "main";
+      shaderDesc.vs.uniform_blocks[0].size = 6 * 16;
+      shaderDesc.vs.uniform_blocks[0].layout = SG_UNIFORMLAYOUT_STD140;
+      shaderDesc.vs.uniform_blocks[0].uniforms[0].name = "vs_params";
+      shaderDesc.vs.uniform_blocks[0].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;
+      shaderDesc.vs.uniform_blocks[0].uniforms[0].array_count = 6;
+      
+      shaderDesc.fs.source = fs_src2;
+      shaderDesc.fs.entry = "main";
+      shaderDesc.fs.images[0].name = "Base";
+      shaderDesc.fs.images[0].image_type = SG_IMAGETYPE_2D;
+      shaderDesc.fs.images[0].sampler_type = SG_SAMPLERTYPE_FLOAT;
+      shaderDesc.fs.images[0].name = "Bump";
+      shaderDesc.fs.images[0].image_type = SG_IMAGETYPE_2D;
+      shaderDesc.fs.images[0].sampler_type = SG_SAMPLERTYPE_FLOAT;
+
+      shd2 = sg_make_shader(shaderDesc);
+    }
 
     sg_image tex = create_texture("data/laying_rock7Bump.png", imageDesc);
 
@@ -618,23 +654,33 @@ out vec2 texCoord;
 out vec3 lightVec;
 out vec3 viewVec;
 
-uniform vec3 lightPos;
-uniform vec3 camPos;
+uniform vec4 vs_params[6];
+
+layout(location = 0) in vec4 position;
+layout(location = 1) in vec2 uv;
+layout(location = 2) in vec3 mat0;
+layout(location = 3) in vec3 mat1;
+layout(location = 4) in vec3 mat2;
 
 void main() {
-  gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
 
-  texCoord = gl_MultiTexCoord0.xy;
+  mat4 mvp = mat4(vs_params[0], vs_params[1], vs_params[2], vs_params[3]);
+  gl_Position = mvp * position;
 
-  vec3 lVec = lightPos - gl_Vertex.xyz;
-  lightVec.x = dot(gl_MultiTexCoord1.xyz, lVec);
-  lightVec.y = dot(gl_MultiTexCoord2.xyz, lVec);
-  lightVec.z = dot(gl_MultiTexCoord3.xyz, lVec);
+  texCoord = uv.xy;
 
-  vec3 vVec = camPos - gl_Vertex.xyz;
-  viewVec.x = dot(gl_MultiTexCoord1.xyz, vVec);
-  viewVec.y = dot(gl_MultiTexCoord2.xyz, vVec);
-  viewVec.z = dot(gl_MultiTexCoord3.xyz, vVec);
+  vec3 lightPos = vs_params[4].xyz;
+  vec3 camPos = vs_params[5].xyz;
+
+  vec3 lVec = lightPos - position.xyz;
+  lightVec.x = dot(mat0.xyz, lVec);
+  lightVec.y = dot(mat1.xyz, lVec);
+  lightVec.z = dot(mat2.xyz, lVec);
+
+  vec3 vVec = camPos - position.xyz;
+  viewVec.x = dot(mat0.xyz, vVec);
+  viewVec.y = dot(mat1.xyz, vVec);
+  viewVec.z = dot(mat2.xyz, vVec);
 }
 )";
 
@@ -650,6 +696,8 @@ in vec2 texCoord;
 in vec3 lightVec;
 in vec3 viewVec;
 
+layout(location = 0) out vec4 frag_color;
+
 void main(){
 	vec4 base = texture(Base, texCoord);
 	vec3 bump = texture(Bump, texCoord).xyz * 2.0 - 1.0;
@@ -664,7 +712,7 @@ void main(){
 
 	float specular = pow(clamp(dot(reflect(normalize(-viewVec), bump), lVec), 0.0, 1.0), 16.0);
 	
-	gl_FragColor = ambient * base + (diffuse * base + 0.6 * specular) * atten;
+	frag_color = ambient * base + (diffuse * base + 0.6 * specular) * atten;
 }
 )";
 
