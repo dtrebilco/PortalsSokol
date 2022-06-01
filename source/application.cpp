@@ -418,6 +418,21 @@ void init(void) {
     load_model("data/room0.hmdl", models[3], vec3(-1024, -768, 2688));
     load_model("data/room0.hmdl", models[4], vec3(-2304, 256, 2688));
 
+    sg_pipeline_desc roomPipDesc = {};
+    roomPipDesc.layout.attrs[0] = { .offset = 0, .format = SG_VERTEXFORMAT_FLOAT3 }; // position
+    roomPipDesc.layout.attrs[1] = { .offset = 12, .format = SG_VERTEXFORMAT_FLOAT2 }; // uv
+    roomPipDesc.layout.attrs[2] = { .offset = 20, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat0
+    roomPipDesc.layout.attrs[3] = { .offset = 32, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat1
+    roomPipDesc.layout.attrs[4] = { .offset = 44, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat2
+    roomPipDesc.shader = shd2;
+    roomPipDesc.index_type = SG_INDEXTYPE_UINT16;
+    roomPipDesc.depth = {
+        .compare = SG_COMPAREFUNC_LESS_EQUAL,
+        .write_enabled = true,
+    };
+    roomPipDesc.cull_mode = SG_CULLMODE_BACK;
+    sg_pipeline roomPip = sg_make_pipeline(roomPipDesc);
+
     // create pipeline object
     sg_pipeline_desc pipDesc = {};
     pipDesc.layout.buffers[0].step_func = SG_VERTEXSTEP_PER_INSTANCE;
