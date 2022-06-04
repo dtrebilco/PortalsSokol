@@ -23,6 +23,9 @@ struct scene_data
   sg_image base[3] = {};
   sg_image bump[3] = {};
   sg_image particle = {};
+
+  sg_pipeline room_pipline = {};
+
 };
 scene_data SceneData = {};
 
@@ -356,12 +359,11 @@ void init(void) {
     sg_image_desc imageDesc = {
       .min_filter = SG_FILTER_LINEAR_MIPMAP_NEAREST,
       .mag_filter = SG_FILTER_LINEAR,
-      .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
-      .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
+      .wrap_u = SG_WRAP_REPEAT,
+      .wrap_v = SG_WRAP_REPEAT,
     };
     //sg_image tex = create_texture("data/sprites.png", imageDesc);
 
-    sg_shader shd2 = {};
     {
       sg_shader_desc shaderDesc = {};
       shaderDesc.vs.uniform_blocks[0] = {
@@ -390,8 +392,16 @@ void init(void) {
       shaderDesc.fs.images[0].image_type = SG_IMAGETYPE_2D;
       shaderDesc.fs.images[0].sampler_type = SG_SAMPLERTYPE_FLOAT;
 
-      shd2 = sg_make_shader(shaderDesc);
+      SceneData.shader = sg_make_shader(shaderDesc);
     }
+
+    SceneData.base[0] = create_texture("data/Wood.png", imageDesc);
+    SceneData.base[1] = create_texture("data/laying_rock7.png", imageDesc);
+    SceneData.base[2] = create_texture("data/victoria.png", imageDesc);
+
+    SceneData.bump[0] = create_texture("data/Wood_N.png", imageDesc);
+    SceneData.bump[1] = create_texture("data/laying_rock7_N.png", imageDesc);
+    SceneData.bump[2] = create_texture("data/victoria_N.png", imageDesc);
 
     sg_image tex = create_texture("data/laying_rock7Bump.png", imageDesc);
 
@@ -424,14 +434,14 @@ void init(void) {
     roomPipDesc.layout.attrs[2] = { .offset = 20, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat0
     roomPipDesc.layout.attrs[3] = { .offset = 32, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat1
     roomPipDesc.layout.attrs[4] = { .offset = 44, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat2
-    roomPipDesc.shader = shd2;
+    roomPipDesc.shader = SceneData.shader;
     roomPipDesc.index_type = SG_INDEXTYPE_UINT16;
     roomPipDesc.depth = {
         .compare = SG_COMPAREFUNC_LESS_EQUAL,
         .write_enabled = true,
     };
     roomPipDesc.cull_mode = SG_CULLMODE_BACK;
-    sg_pipeline roomPip = sg_make_pipeline(roomPipDesc);
+    SceneData.room_pipline = sg_make_pipeline(roomPipDesc);
 
     // create pipeline object
     sg_pipeline_desc pipDesc = {};
@@ -483,6 +493,21 @@ void frame(void) {
     const float w = (float) sapp_width();
     const float h = (float) sapp_height();
     vs_params.aspect = w / h;
+
+    mat4 proj = mat4(1.073426, 0.000000, 0.000000, 0.000000,
+                     0.000000, 1.500118, 0.000000, 0.000000,
+                     0.000000, 0.000000, 1.000033, 1.000000,
+                     0.000000, 0.000000, -0.200003, 0.000000);
+
+    mat4 mv = mat4(-0.000000, 0.000000, -1.000000, 0.000000,
+                    0.000000, 1.000000, -0.000000, 0.000000,
+                    1.000000, -0.000000, -0.000000, 0.000000,
+                   -209.999985, -220.000000, 470.000000, 1.000000);
+    mat4 mvp = mv * proj;
+
+    vec3 lightpos = vec3(38.729336, 87.001053, 45.429482);
+    vec3 camPos = vec3(470.000000, 220.000000, 210.000000);
+
 
     uint64_t dt = stm_laptime(&time);
     
@@ -704,8 +729,11 @@ const char* fs_src2 = R"(
 uniform sampler2D Base;
 uniform sampler2D Bump;
 
-uniform float invRadius;
-uniform float ambient;
+//uniform float invRadius;
+//uniform float ambient;
+
+float invRadius = 0.001250;
+float ambient = 0.07;
 
 in vec2 texCoord;
 in vec3 lightVec;
