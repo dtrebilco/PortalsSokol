@@ -17,18 +17,6 @@ extern "C" __declspec(dllimport) void __stdcall OutputDebugStringA(const char* l
 extern const char *vs_src, *fs_src;
 extern const char* vs_src2, * fs_src2;
 
-struct scene_data
-{
-  sg_shader shader = {};
-  sg_image base[3] = {};
-  sg_image bump[3] = {};
-  sg_image particle = {};
-
-  sg_pipeline room_pipline = {};
-
-};
-scene_data SceneData = {};
-
 const int SAMPLE_COUNT = 4;
 sg_bindings draw_state;
 sg_pipeline pip;
@@ -40,6 +28,13 @@ typedef struct {
     float aspect;
     float dummy[3];
 } vs_params_t;
+
+struct vs_room_params
+{
+  mat4 mvp;
+  vec4 lightPos;
+  vec4 camPos;
+};
 
 bool is_power2(unsigned int v) {
   return v && ((v & (v - 1)) == 0);
@@ -181,6 +176,20 @@ struct Model
 {
   std::vector<Batch> batches;
 };
+
+struct scene_data
+{
+  Model models[5];
+
+  sg_shader shader = {};
+  sg_image base[3] = {};
+  sg_image bump[3] = {};
+  sg_image particle = {};
+
+  sg_pipeline room_pipline = {};
+
+};
+scene_data SceneData = {};
 
 float getValue(const char* src, const unsigned int index, const AttributeFormat attFormat) {
   switch (attFormat) {
@@ -388,9 +397,9 @@ void init(void) {
       shaderDesc.fs.images[0].name = "Base";
       shaderDesc.fs.images[0].image_type = SG_IMAGETYPE_2D;
       shaderDesc.fs.images[0].sampler_type = SG_SAMPLERTYPE_FLOAT;
-      shaderDesc.fs.images[0].name = "Bump";
-      shaderDesc.fs.images[0].image_type = SG_IMAGETYPE_2D;
-      shaderDesc.fs.images[0].sampler_type = SG_SAMPLERTYPE_FLOAT;
+      shaderDesc.fs.images[1].name = "Bump";
+      shaderDesc.fs.images[1].image_type = SG_IMAGETYPE_2D;
+      shaderDesc.fs.images[1].sampler_type = SG_SAMPLERTYPE_FLOAT;
 
       SceneData.shader = sg_make_shader(shaderDesc);
     }
@@ -404,8 +413,6 @@ void init(void) {
     SceneData.bump[2] = create_texture("data/victoria_N.png", imageDesc);
 
     sg_image tex = create_texture("data/laying_rock7Bump.png", imageDesc);
-
-    Model models[5];
 
     auto load_model = [](const char* filename, Model& model, vec3 offset) {
       load_model_from_file(filename, model);
@@ -422,11 +429,11 @@ void init(void) {
       make_model_renderable(model);
     };
 
-    load_model("data/room0.hmdl", models[0], vec3(0, 256, 0));
-    load_model("data/room0.hmdl", models[1], vec3(-384, 256, 3072));
-    load_model("data/room0.hmdl", models[2], vec3(1536, 256, 2688));
-    load_model("data/room0.hmdl", models[3], vec3(-1024, -768, 2688));
-    load_model("data/room0.hmdl", models[4], vec3(-2304, 256, 2688));
+    load_model("data/room0.hmdl", SceneData.models[0], vec3(0, 256, 0));
+    load_model("data/room0.hmdl", SceneData.models[1], vec3(-384, 256, 3072));
+    load_model("data/room0.hmdl", SceneData.models[2], vec3(1536, 256, 2688));
+    load_model("data/room0.hmdl", SceneData.models[3], vec3(-1024, -768, 2688));
+    load_model("data/room0.hmdl", SceneData.models[4], vec3(-2304, 256, 2688));
 
     sg_pipeline_desc roomPipDesc = {};
     roomPipDesc.layout.attrs[0] = { .offset = 0, .format = SG_VERTEXFORMAT_FLOAT3 }; // position
@@ -489,6 +496,9 @@ void init(void) {
 }
 
 void frame(void) {
+    vs_room_params room_params;
+
+
     vs_params_t vs_params;
     const float w = (float) sapp_width();
     const float h = (float) sapp_height();
@@ -503,11 +513,10 @@ void frame(void) {
                     0.000000, 1.000000, -0.000000, 0.000000,
                     1.000000, -0.000000, -0.000000, 0.000000,
                    -209.999985, -220.000000, 470.000000, 1.000000);
-    mat4 mvp = mv * proj;
+    room_params.mvp = proj * mv;
 
-    vec3 lightpos = vec3(38.729336, 87.001053, 45.429482);
-    vec3 camPos = vec3(470.000000, 220.000000, 210.000000);
-
+    room_params.lightPos = vec4(38.729336, 87.001053, 45.429482, 1.0);
+    room_params.camPos = vec4(470.000000, 220.000000, 210.000000, 1.0);
 
     uint64_t dt = stm_laptime(&time);
     
@@ -542,11 +551,25 @@ void frame(void) {
     pass_action.colors[0] = { .action = SG_ACTION_CLEAR, .value = { 0.1f, 0.1f, 0.1f, 1.0f } };
 
     sg_begin_default_pass(&pass_action, (int)w, (int)h);
+    
     sg_apply_pipeline(pip);
     sg_apply_bindings(&draw_state);
     sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(vs_params));
-    if (sprite_count > 0)
-        sg_draw(0, 6, sprite_count);
+    //if (sprite_count > 0)
+    //    sg_draw(0, 6, sprite_count);
+
+    sg_apply_pipeline(SceneData.room_pipline);
+    sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(room_params));
+    for (int i = 0; i < 3; i++)
+    {
+      sg_bindings binding = {};
+      binding.index_buffer = SceneData.models[0].batches[i].render_index;
+      binding.vertex_buffers[0] = SceneData.models[0].batches[i].render_vertex;
+      binding.fs_images[0] = SceneData.base[i];
+      binding.fs_images[1] = SceneData.bump[i];
+      sg_apply_bindings(&binding);
+      sg_draw(0, SceneData.models[0].batches[i].nIndices, 1);
+    }
     sg_end_pass();
     sg_commit();
 }
