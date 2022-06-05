@@ -290,7 +290,7 @@ bool make_model_renderable(Model& ret_model) {
 
     sg_range vertex_range = sg_range{ .ptr = batch.vertices, .size = (batch.nVertices * batch.vertexSize) };
     batch.render_vertex = sg_make_buffer(sg_buffer_desc{
-        .data = index_range,
+        .data = vertex_range,
       });
     if (batch.render_index.id == SG_INVALID_ID ||
         batch.render_vertex.id == SG_INVALID_ID) {
