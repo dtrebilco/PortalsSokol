@@ -22,7 +22,7 @@ sg_bindings draw_state;
 sg_pipeline pip;
 
 static sprite_data_t* sprite_data;
-static uint64_t time;
+static uint64_t time = 0;
 
 typedef struct {
     float aspect;
@@ -515,11 +515,21 @@ void frame(void) {
                    -209.999985, -220.000000, 470.000000, 1.000000);
     room_params.mvp = proj * mv;
 
-    room_params.lightPos = vec4(38.729336, 87.001053, 45.429482, 1.0);
+    vec3 lightStartPos = vec3(0, 128, 0);
+    float xs = 100;
+    float ys = 100;
+    float zs = 100;
+    float t = stm_sec(time) - 0.1f; // DT_TODO: Bad usage of time?
+    float j = 0;
+    vec3 p = vec3(xs * cosf(4.23f * t + j), ys * sinf(2.37f * t) * cosf(1.39f * t), zs * sinf(3.12f * t + j));
+
+    //room_params.lightPos = vec4(38.729336, 87.001053, 45.429482, 1.0);
+    room_params.lightPos = vec4(lightStartPos + p, 1.0);
     room_params.camPos = vec4(470.000000, 220.000000, 210.000000, 1.0);
 
     uint64_t dt = stm_laptime(&time);
     
+    /*
     uint64_t t0 = stm_now();
     int sprite_count = game_update(sprite_data, stm_sec(time), (float)stm_sec(dt));
     uint64_t tdiff = stm_diff(stm_now(), t0);
@@ -546,7 +556,7 @@ void frame(void) {
 
     assert(sprite_count >= 0 && sprite_count <= kMaxSpriteCount);
     sg_update_buffer(draw_state.vertex_buffers[0], sg_range{ .ptr = sprite_data, .size = sprite_count * sizeof(sprite_data[0]) });
-
+    */
     sg_pass_action pass_action = {};
     pass_action.colors[0] = { .action = SG_ACTION_CLEAR, .value = { 0.1f, 0.1f, 0.1f, 1.0f } };
 
