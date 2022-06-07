@@ -10,12 +10,14 @@
 extern "C" __declspec(dllimport) void __stdcall OutputDebugStringA(const char* lpOutputString);
 #endif
 
+#include "ParticleSystem.h"
 #include "game.h"
 #include "Vector.h"
 #include <vector>
 
 extern const char *vs_src, *fs_src;
 extern const char* vs_src2, * fs_src2;
+extern const char* vs_src_pfx, * fs_src_pfx;
 
 const int SAMPLE_COUNT = 4;
 sg_bindings draw_state;
@@ -184,10 +186,11 @@ struct scene_data
   sg_shader shader = {};
   sg_image base[3] = {};
   sg_image bump[3] = {};
-  sg_image particle = {};
-
   sg_pipeline room_pipline = {};
 
+  sg_shader pfx_shader = {};
+  sg_image pfx_particle = {};
+  sg_pipeline pfx_pipline = {};
 };
 scene_data SceneData = {};
 
@@ -375,9 +378,6 @@ void init(void) {
 
     {
       sg_shader_desc shaderDesc = {};
-      shaderDesc.vs.uniform_blocks[0] = {
-              .size = sizeof(vs_params_t)
-      };
       shaderDesc.attrs[0] = { .name = "position" };
       shaderDesc.attrs[1] = { .name = "uv" };
       shaderDesc.attrs[2] = { .name = "mat0" };
@@ -404,6 +404,29 @@ void init(void) {
       SceneData.shader = sg_make_shader(shaderDesc);
     }
 
+    {
+      sg_shader_desc shaderDesc = {};
+      shaderDesc.attrs[0] = { .name = "position" };
+      shaderDesc.attrs[1] = { .name = "in_uv" };
+      shaderDesc.attrs[2] = { .name = "in_color" };
+
+      shaderDesc.vs.source = vs_src_pfx;
+      shaderDesc.vs.entry = "main";
+      shaderDesc.vs.uniform_blocks[0].size = 4 * 16;
+      shaderDesc.vs.uniform_blocks[0].layout = SG_UNIFORMLAYOUT_STD140;
+      shaderDesc.vs.uniform_blocks[0].uniforms[0].name = "vs_params";
+      shaderDesc.vs.uniform_blocks[0].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;
+      shaderDesc.vs.uniform_blocks[0].uniforms[0].array_count = 4;
+
+      shaderDesc.fs.source = fs_src_pfx;
+      shaderDesc.fs.entry = "main";
+      shaderDesc.fs.images[0].name = "tex0";
+      shaderDesc.fs.images[0].image_type = SG_IMAGETYPE_2D;
+      shaderDesc.fs.images[0].sampler_type = SG_SAMPLERTYPE_FLOAT;
+
+      SceneData.pfx_shader = sg_make_shader(shaderDesc);
+    }
+
     SceneData.base[0] = create_texture("data/Wood.png", imageDesc);
     SceneData.base[1] = create_texture("data/laying_rock7.png", imageDesc);
     SceneData.base[2] = create_texture("data/victoria.png", imageDesc);
@@ -411,6 +434,14 @@ void init(void) {
     SceneData.bump[0] = create_texture("data/Wood_N.png", imageDesc);
     SceneData.bump[1] = create_texture("data/laying_rock7_N.png", imageDesc);
     SceneData.bump[2] = create_texture("data/victoria_N.png", imageDesc);
+
+    sg_image_desc pfx_imageDesc = {
+      .min_filter = SG_FILTER_LINEAR_MIPMAP_NEAREST,
+      .mag_filter = SG_FILTER_LINEAR,
+      .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
+      .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
+    };
+    SceneData.pfx_particle = create_texture("data/Particle.png", pfx_imageDesc);
 
     sg_image tex = create_texture("data/laying_rock7Bump.png", imageDesc);
 
@@ -435,44 +466,70 @@ void init(void) {
     load_model("data/room0.hmdl", SceneData.models[3], vec3(-1024, -768, 2688));
     load_model("data/room0.hmdl", SceneData.models[4], vec3(-2304, 256, 2688));
 
-    sg_pipeline_desc roomPipDesc = {};
-    roomPipDesc.layout.attrs[0] = { .offset = 0, .format = SG_VERTEXFORMAT_FLOAT3 }; // position
-    roomPipDesc.layout.attrs[1] = { .offset = 12, .format = SG_VERTEXFORMAT_FLOAT2 }; // uv
-    roomPipDesc.layout.attrs[2] = { .offset = 20, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat0
-    roomPipDesc.layout.attrs[3] = { .offset = 32, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat1
-    roomPipDesc.layout.attrs[4] = { .offset = 44, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat2
-    roomPipDesc.shader = SceneData.shader;
-    roomPipDesc.index_type = SG_INDEXTYPE_UINT16;
-    roomPipDesc.depth = {
-        .compare = SG_COMPAREFUNC_LESS_EQUAL,
-        .write_enabled = true,
-    };
-    roomPipDesc.cull_mode = SG_CULLMODE_BACK;
-    SceneData.room_pipline = sg_make_pipeline(roomPipDesc);
+    {
+      sg_pipeline_desc roomPipDesc = {};
+      roomPipDesc.layout.attrs[0] = { .offset = 0, .format = SG_VERTEXFORMAT_FLOAT3 }; // position
+      roomPipDesc.layout.attrs[1] = { .offset = 12, .format = SG_VERTEXFORMAT_FLOAT2 }; // uv
+      roomPipDesc.layout.attrs[2] = { .offset = 20, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat0
+      roomPipDesc.layout.attrs[3] = { .offset = 32, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat1
+      roomPipDesc.layout.attrs[4] = { .offset = 44, .format = SG_VERTEXFORMAT_FLOAT3 }; // mat2
+      roomPipDesc.shader = SceneData.shader;
+      roomPipDesc.index_type = SG_INDEXTYPE_UINT16;
+      roomPipDesc.depth = {
+          .compare = SG_COMPAREFUNC_LESS_EQUAL,
+          .write_enabled = true,
+      };
+      roomPipDesc.cull_mode = SG_CULLMODE_BACK;
+      SceneData.room_pipline = sg_make_pipeline(roomPipDesc);
+    }
 
-    // create pipeline object
-    sg_pipeline_desc pipDesc = {};
-    pipDesc.layout.buffers[0].step_func = SG_VERTEXSTEP_PER_INSTANCE;
-    pipDesc.layout.attrs[0] = { .offset = 0, .format = SG_VERTEXFORMAT_FLOAT3 }; // instance pos + scale
-    pipDesc.layout.attrs[1] = { .offset = 12, .format = SG_VERTEXFORMAT_FLOAT4 }; // instance color
+    {
+      sg_pipeline_desc pipDesc = {};
+      pipDesc.layout.attrs[0] = { .offset = 0, .format = SG_VERTEXFORMAT_FLOAT3 }; // position
+      pipDesc.layout.attrs[1] = { .offset = 12, .format = SG_VERTEXFORMAT_FLOAT2 }; // uv
+      pipDesc.layout.attrs[2] = { .offset = 20, .format = SG_VERTEXFORMAT_FLOAT4 }; // color
+      pipDesc.shader = SceneData.pfx_shader;
+      pipDesc.index_type = SG_INDEXTYPE_UINT16;
+      pipDesc.depth = {
+          .compare = SG_COMPAREFUNC_LESS_EQUAL,
+          .write_enabled = false,
+      };
+      pipDesc.colors[0].blend = {
+          .enabled = true,
+          .src_factor_rgb = SG_BLENDFACTOR_ONE,
+          .dst_factor_rgb = SG_BLENDFACTOR_ONE,
+          .src_factor_alpha = SG_BLENDFACTOR_ONE,
+          .dst_factor_alpha = SG_BLENDFACTOR_ONE,
+      };
+      pipDesc.cull_mode = SG_CULLMODE_BACK;
+      SceneData.pfx_pipline = sg_make_pipeline(pipDesc);
+    }
 
-    pipDesc.shader = shd;
-    pipDesc.index_type = SG_INDEXTYPE_UINT16;
-    pipDesc.depth = {
-        .compare = SG_COMPAREFUNC_LESS_EQUAL,
-        .write_enabled = true,
-    };
-    pipDesc.cull_mode = SG_CULLMODE_NONE;
-    pipDesc.sample_count = SAMPLE_COUNT;
-    pipDesc.colors[0].blend = {
-        .enabled = true,
-        .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
-        .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-        .src_factor_alpha = SG_BLENDFACTOR_SRC_ALPHA,
-        .dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-    };
+    {
+      // create pipeline object
+      sg_pipeline_desc pipDesc = {};
+      pipDesc.layout.buffers[0].step_func = SG_VERTEXSTEP_PER_INSTANCE;
+      pipDesc.layout.attrs[0] = { .offset = 0, .format = SG_VERTEXFORMAT_FLOAT3 }; // instance pos + scale
+      pipDesc.layout.attrs[1] = { .offset = 12, .format = SG_VERTEXFORMAT_FLOAT4 }; // instance color
 
-    pip = sg_make_pipeline(pipDesc);
+      pipDesc.shader = shd;
+      pipDesc.index_type = SG_INDEXTYPE_UINT16;
+      pipDesc.depth = {
+          .compare = SG_COMPAREFUNC_LESS_EQUAL,
+          .write_enabled = true,
+      };
+      pipDesc.cull_mode = SG_CULLMODE_NONE;
+      pipDesc.sample_count = SAMPLE_COUNT;
+      pipDesc.colors[0].blend = {
+          .enabled = true,
+          .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
+          .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+          .src_factor_alpha = SG_BLENDFACTOR_SRC_ALPHA,
+          .dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+      };
+
+      pip = sg_make_pipeline(pipDesc);
+    }
 
     // draw state struct with resource bindings
     draw_state = sg_bindings{};
