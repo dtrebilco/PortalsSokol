@@ -792,6 +792,39 @@ void main(){
 }
 )";
 
+
+const char* vs_src_pfx = R"(
+#version 330
+uniform vec4 vs_params[4];
+layout(location = 0) in vec4 position;
+layout(location = 1) in vec2 in_uv;
+layout(location = 2) in vec4 in_color;
+out vec2 uv;
+out vec4 color;
+void main() {
+
+  // Position it
+  mat4 mvp = mat4(vs_params[0], vs_params[1], vs_params[2], vs_params[3]);
+  gl_Position = mvp * position;
+
+  uv = in_uv;
+  color = in_color;
+}
+
+)";
+
+const char* fs_src_pfx = R"(
+#version 330
+layout(location = 0) out vec4 frag_color;
+in vec2 uv;
+in vec4 color;
+uniform sampler2D tex0;
+void main() {
+  frag_color = texture(tex0, uv);
+  frag_color *= color;
+}
+)";
+
 #else
 #error Unknown graphics plaform
 #endif
