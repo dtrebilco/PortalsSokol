@@ -361,11 +361,11 @@ void init(void) {
       uint16_t* dest = indices.data();
       for (unsigned int i = 0; i < MAX_PFX_PARTICLES; i++) {
         *dest++ = 4 * i;
-        *dest++ = 4 * i + 1;
-        *dest++ = 4 * i + 3;
         *dest++ = 4 * i + 3;
         *dest++ = 4 * i + 1;
+        *dest++ = 4 * i + 3;
         *dest++ = 4 * i + 2;
+        *dest++ = 4 * i + 1;
       }
       SceneData.pfx_index = sg_make_buffer(sg_buffer_desc{
           .type = SG_BUFFERTYPE_INDEXBUFFER,
