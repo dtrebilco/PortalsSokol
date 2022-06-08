@@ -10,6 +10,9 @@
 extern "C" __declspec(dllimport) void __stdcall OutputDebugStringA(const char* lpOutputString);
 #endif
 
+const uint32_t MAX_PFX_PARTICLES = 1200;
+const uint32_t PFX_VERTEX_SIZE = (4 * 3 + 4 * 2 + 4 * 4);
+
 #include "ParticleSystem.h"
 #include "game.h"
 #include "Vector.h"
@@ -36,6 +39,11 @@ struct vs_room_params
   mat4 mvp;
   vec4 lightPos;
   vec4 camPos;
+};
+
+struct vs_pfx_params
+{
+  mat4 mvp;
 };
 
 bool is_power2(unsigned int v) {
@@ -192,6 +200,9 @@ struct scene_data
   sg_shader pfx_shader = {};
   sg_image pfx_particle = {};
   sg_pipeline pfx_pipline = {};
+
+  sg_buffer pfx_index;
+  sg_buffer pfx_vertex;
 };
 scene_data SceneData = {};
 
@@ -343,6 +354,28 @@ void init(void) {
         .type = SG_BUFFERTYPE_INDEXBUFFER,
         .data = SG_RANGE(indices),
     });
+
+    {
+      std::vector<uint16_t> indices;
+      indices.resize(MAX_PFX_PARTICLES * 6);
+      uint16_t* dest = indices.data();
+      for (unsigned int i = 0; i < MAX_PFX_PARTICLES; i++) {
+        *dest++ = 4 * i;
+        *dest++ = 4 * i + 1;
+        *dest++ = 4 * i + 3;
+        *dest++ = 4 * i + 3;
+        *dest++ = 4 * i + 1;
+        *dest++ = 4 * i + 2;
+      }
+      SceneData.pfx_index = sg_make_buffer(sg_buffer_desc{
+          .type = SG_BUFFERTYPE_INDEXBUFFER,
+          .data = sg_range{.ptr = indices.data(), .size = (indices.size() * sizeof(uint16_t)) } ,
+        });
+    }
+    SceneData.pfx_vertex = sg_make_buffer(sg_buffer_desc{
+        .size = MAX_PFX_PARTICLES * PFX_VERTEX_SIZE * 4,
+        .usage = SG_USAGE_STREAM
+      });
 
     ParticleSystem& particles = SceneData.particles;
     particles.setSpawnRate(400);
@@ -569,7 +602,7 @@ void init(void) {
 
 void frame(void) {
     vs_room_params room_params;
-
+    vs_pfx_params pfx_params;
 
     vs_params_t vs_params;
     const float w = (float) sapp_width();
@@ -586,6 +619,7 @@ void frame(void) {
                     1.000000, -0.000000, -0.000000, 0.000000,
                    -209.999985, -220.000000, 470.000000, 1.000000);
     room_params.mvp = proj * mv;
+    pfx_params.mvp = room_params.mvp;
 
     vec3 lightStartPos = vec3(0, 128, 0);
     float xs = 100;
@@ -603,8 +637,19 @@ void frame(void) {
     p = vec3(xs * cosf(4.23f * t + j), ys * sinf(2.37f * t) * cosf(1.39f * t), zs * sinf(3.12f * t + j));
     SceneData.particles.setPosition(lightStartPos + p);
     SceneData.particles.update(t);
-    //SceneData.vertexArray = lights[j].particles->getVertexArray(dx, dy);
 
+    vec3 dx(mv[0][0], mv[0][1], mv[0][2]);
+    vec3 dy(mv[1][0], mv[1][1], mv[1][2]);
+
+    uint32_t pfxCount = SceneData.particles.getParticleCount();
+    if (pfxCount > MAX_PFX_PARTICLES)
+    {
+      pfxCount = MAX_PFX_PARTICLES;
+    }
+    if (pfxCount > 0)
+    {
+      sg_update_buffer(SceneData.pfx_vertex, sg_range{ .ptr = SceneData.particles.getVertexArray(dx, dy), .size = pfxCount * PFX_VERTEX_SIZE * 4 });
+    }
 
     uint64_t dt = stm_laptime(&time);
     /*
@@ -658,6 +703,19 @@ void frame(void) {
       sg_apply_bindings(&binding);
       sg_draw(0, SceneData.models[0].batches[i].nIndices, 1);
     }
+
+    if (pfxCount > 0)
+    {
+      sg_apply_pipeline(SceneData.pfx_pipline);
+      sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(pfx_params));
+      sg_bindings binding = {};
+      binding.index_buffer = SceneData.pfx_index;
+      binding.vertex_buffers[0] = SceneData.pfx_vertex;
+      binding.fs_images[0] = SceneData.pfx_particle;
+      sg_apply_bindings(&binding);
+      sg_draw(0, 6 * pfxCount, 1);
+    }
+
     sg_end_pass();
     sg_commit();
 }
