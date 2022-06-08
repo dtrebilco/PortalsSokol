@@ -182,6 +182,7 @@ struct Model
 struct scene_data
 {
   Model models[5];
+  ParticleSystem particles;
 
   sg_shader shader = {};
   sg_image base[3] = {};
@@ -342,6 +343,20 @@ void init(void) {
         .type = SG_BUFFERTYPE_INDEXBUFFER,
         .data = SG_RANGE(indices),
     });
+
+    ParticleSystem& particles = SceneData.particles;
+    particles.setSpawnRate(400);
+    particles.setSpeed(70, 20);
+    particles.setLife(3.0f, 0);
+    particles.setDirectionalForce(vec3(0, -10, 0));
+    particles.setFrictionFactor(0.95f);
+    //particles.setPosition(pos);
+    particles.setSize(15, 5);
+
+    for (unsigned int i = 0; i < 6; i++) {
+      particles.setColor(i, vec4(0.05f * i, 0.01f * i, 0, 0));
+      particles.setColor(6 + i, vec4(0.05f * 6, 0.05f * i + 0.06f, 0.02f * i, 0));
+    }
 
     // create shader
     sg_shader shd = {};
@@ -584,8 +599,14 @@ void frame(void) {
     room_params.lightPos = vec4(lightStartPos + p, 1.0);
     room_params.camPos = vec4(470.000000, 220.000000, 210.000000, 1.0);
 
+    t = stm_sec(time);
+    p = vec3(xs * cosf(4.23f * t + j), ys * sinf(2.37f * t) * cosf(1.39f * t), zs * sinf(3.12f * t + j));
+    SceneData.particles.setPosition(lightStartPos + p);
+    SceneData.particles.update(t);
+    //SceneData.vertexArray = lights[j].particles->getVertexArray(dx, dy);
+
+
     uint64_t dt = stm_laptime(&time);
-    
     /*
     uint64_t t0 = stm_now();
     int sprite_count = game_update(sprite_data, stm_sec(time), (float)stm_sec(dt));
