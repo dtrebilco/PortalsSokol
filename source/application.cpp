@@ -189,6 +189,11 @@ struct Model
 
 struct scene_data
 {
+  vec3 camPos = vec3(470, 220, 210);
+  float wx = 0;
+  float wy = PI / 2;
+  float wz = 0;
+
   Model models[5];
   ParticleSystem particles;
 
@@ -609,15 +614,9 @@ void frame(void) {
     const float h = (float) sapp_height();
     vs_params.aspect = w / h;
 
-    mat4 proj = mat4(1.073426, 0.000000, 0.000000, 0.000000,
-                     0.000000, 1.500118, 0.000000, 0.000000,
-                     0.000000, 0.000000, 1.000033, 1.000000,
-                     0.000000, 0.000000, -0.200003, 0.000000);
+    mat4 proj = perspectiveMatrixX(1.5f, w, h, 0.1f, 6000);
+    mat4 mv = rotateXY(-SceneData.wx, -SceneData.wy) * translate(-SceneData.camPos);
 
-    mat4 mv = mat4(-0.000000, 0.000000, -1.000000, 0.000000,
-                    0.000000, 1.000000, -0.000000, 0.000000,
-                    1.000000, -0.000000, -0.000000, 0.000000,
-                   -209.999985, -220.000000, 470.000000, 1.000000);
     room_params.mvp = proj * mv;
     pfx_params.mvp = room_params.mvp;
 
@@ -631,7 +630,7 @@ void frame(void) {
 
     //room_params.lightPos = vec4(38.729336, 87.001053, 45.429482, 1.0);
     room_params.lightPos = vec4(lightStartPos + p, 1.0);
-    room_params.camPos = vec4(470.000000, 220.000000, 210.000000, 1.0);
+    room_params.camPos = vec4(SceneData.camPos, 1.0);
 
     t = stm_sec(time);
     p = vec3(xs * cosf(4.23f * t + j), ys * sinf(2.37f * t) * cosf(1.39f * t), zs * sinf(3.12f * t + j));
