@@ -13,7 +13,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\source\application.cpp" />
     <ClCompile Include="..\..\source\external\sokol.c" />
-    <ClCompile Include="..\..\source\game.cpp" />
     <ClCompile Include="..\..\source\Main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -30,7 +29,6 @@
     <ClInclude Include="..\..\source\external\sokol_gfx.h" />
     <ClInclude Include="..\..\source\external\sokol_time.h" />
     <ClInclude Include="..\..\source\external\stb_image.h" />
-    <ClInclude Include="..\..\source\game.h" />
     <ClInclude Include="..\..\source\ParticleSystem.h" />
     <ClInclude Include="..\..\source\Portals.h" />
     <ClInclude Include="..\..\source\Vector.h" />
@@ -86,6 +84,7 @@
       <WarningLevel>Level3</WarningLevel>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -102,6 +101,7 @@
       <WarningLevel>Level3</WarningLevel>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <FloatingPointModel>Fast</FloatingPointModel>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
