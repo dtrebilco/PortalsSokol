@@ -133,21 +133,21 @@ sg_image create_texture(const char *filename, const sg_image_desc& img_desc) {
   return tex;
 }
 
-enum PrimitiveType {
+enum PrimitiveType : uint32_t {
   PRIM_TRIANGLES = 0,
   PRIM_QUADS = 1,
   PRIM_TRIANGLE_STRIP = 2,
   PRIM_LINES = 3,
 };
 
-enum AttributeType {
+enum AttributeType : uint32_t {
   ATT_VERTEX = 0,
   ATT_NORMAL = 1,
   ATT_TEXCOORD = 2,
   ATT_COLOR = 3,
 };
 
-enum AttributeFormat {
+enum AttributeFormat : uint32_t {
   ATT_FLOAT = 0,
   ATT_UNSIGNED_BYTE = 1,
 };
@@ -155,9 +155,9 @@ enum AttributeFormat {
 struct Format {
   AttributeType attType;
   AttributeFormat attFormat;
-  unsigned int size;
-  unsigned int offset;
-  unsigned int index;
+  uint32_t size;
+  uint32_t offset;
+  uint32_t index;
 };
 
 struct Batch
@@ -165,10 +165,10 @@ struct Batch
   char* vertices;
   char* indices;
 
-  unsigned int nVertices;
-  unsigned int nIndices;
-  unsigned int vertexSize;
-  unsigned int indexSize;
+  uint32_t nVertices;
+  uint32_t nIndices;
+  uint32_t vertexSize;
+  uint32_t indexSize;
 
   std::vector<Format> formats;
   PrimitiveType primitiveType;
@@ -699,7 +699,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .width = 800,
         .height = 600,
         .sample_count = SAMPLE_COUNT,
-        .window_title = "dod playground",
+        .window_title = "Portals",
     };
 }
 
