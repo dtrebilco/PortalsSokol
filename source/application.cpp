@@ -194,6 +194,13 @@ struct scene_data
   float wy = PI / 2;
   float wz = 0;
 
+  bool key_leftKey = false;
+  bool key_rightKey = false;
+  bool key_downKey = false;
+  bool key_upKey = false;
+  bool key_backwardKey = false;
+  bool key_forwardKey = false;
+
   Model models[5];
   ParticleSystem particles;
 
@@ -366,10 +373,10 @@ void init(void) {
       uint16_t* dest = indices.data();
       for (unsigned int i = 0; i < MAX_PFX_PARTICLES; i++) {
         *dest++ = 4 * i;
-        *dest++ = 4 * i + 3;
         *dest++ = 4 * i + 1;
         *dest++ = 4 * i + 3;
         *dest++ = 4 * i + 2;
+        *dest++ = 4 * i + 3;
         *dest++ = 4 * i + 1;
       }
       SceneData.pfx_index = sg_make_buffer(sg_buffer_desc{
@@ -605,6 +612,29 @@ void init(void) {
     #endif
 }
 
+void controls(float frameTime) {
+  // Compute directional vectors from euler angles
+  float cosX = cosf(SceneData.wx), sinX = sinf(SceneData.wx), cosY = cosf(SceneData.wy), sinY = sinf(SceneData.wy);
+  vec3 dx(cosY, 0, sinY);
+  vec3 dy(-sinX * sinY, cosX, sinX * cosY);
+  vec3 dz(-cosX * sinY, -sinX, cosX * cosY);
+
+  vec3 dir(0, 0, 0);
+  if (SceneData.key_leftKey)     dir -= dx;
+  if (SceneData.key_rightKey)    dir += dx;
+  if (SceneData.key_downKey)     dir -= dy;
+  if (SceneData.key_upKey)       dir += dy;
+  if (SceneData.key_backwardKey) dir -= dz;
+  if (SceneData.key_forwardKey)  dir += dz;
+
+  float lenSq = dot(dir, dir);
+  if (lenSq > 0) {
+    dir *= 1.0f / sqrtf(lenSq);
+    float speed = 1000.0f;
+    SceneData.camPos += dir * (frameTime * speed);
+  }
+}
+
 void frame(void) {
     vs_room_params room_params;
     vs_pfx_params pfx_params;
@@ -637,8 +667,8 @@ void frame(void) {
     SceneData.particles.setPosition(lightStartPos + p);
     SceneData.particles.update(t);
 
-    vec3 dx(mv[0][0], mv[0][1], mv[0][2]);
-    vec3 dy(mv[1][0], mv[1][1], mv[1][2]);
+    vec3 dx(mv[0][0], mv[1][0], mv[2][0]);
+    vec3 dy(mv[0][1], mv[1][1], mv[2][1]);
 
     uint32_t pfxCount = SceneData.particles.getParticleCount();
     if (pfxCount > MAX_PFX_PARTICLES)
@@ -651,6 +681,8 @@ void frame(void) {
     }
 
     uint64_t dt = stm_laptime(&time);
+    controls(stm_sec(dt));
+
     /*
     uint64_t t0 = stm_now();
     int sprite_count = game_update(sprite_data, stm_sec(time), (float)stm_sec(dt));
@@ -724,11 +756,60 @@ void cleanup(void) {
     sg_shutdown();
 }
 
+static void input(const sapp_event* ev) {
+  switch (ev->type) {
+  case SAPP_EVENTTYPE_MOUSE_DOWN:
+    if (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT) {
+      sapp_lock_mouse(true);
+    }
+    break;
+  case SAPP_EVENTTYPE_MOUSE_UP:
+    if (ev->mouse_button == SAPP_MOUSEBUTTON_LEFT) {
+      sapp_lock_mouse(false);
+    }
+    break;
+  case SAPP_EVENTTYPE_MOUSE_SCROLL:
+    //cam_zoom(cam, ev->scroll_y * 0.5f); //DT_TODO: Adjust speed here?
+    break;
+  case SAPP_EVENTTYPE_MOUSE_MOVE:
+    if (sapp_mouse_locked()) {
+      float mouseSensibility = 0.003f;
+      SceneData.wx -= mouseSensibility * ev->mouse_dy;
+      SceneData.wy -= mouseSensibility * ev->mouse_dx;
+    }
+    break;
+
+  case SAPP_EVENTTYPE_KEY_DOWN:
+    if (ev->key_code == SAPP_KEYCODE_ESCAPE)
+    {
+      sapp_request_quit();
+    }
+    break;
+  default:
+    break;
+  }
+
+  if (ev->type == SAPP_EVENTTYPE_KEY_DOWN ||
+      ev->type == SAPP_EVENTTYPE_KEY_UP) {
+    if (!ev->key_repeat) {
+      bool pressed = (ev->type == SAPP_EVENTTYPE_KEY_DOWN);
+
+      switch (ev->key_code) {
+      case SAPP_KEYCODE_W: SceneData.key_forwardKey = pressed;  break;
+      case SAPP_KEYCODE_S: SceneData.key_backwardKey = pressed; break;
+      case SAPP_KEYCODE_A: SceneData.key_leftKey = pressed;     break;
+      case SAPP_KEYCODE_D: SceneData.key_rightKey = pressed;    break;
+      }
+    }
+  }
+}
+
 sapp_desc sokol_main(int argc, char* argv[]) {
     return sapp_desc{
         .init_cb = init,
         .frame_cb = frame,
         .cleanup_cb = cleanup,
+        .event_cb = input,
         .width = 800,
         .height = 600,
         .sample_count = SAMPLE_COUNT,
