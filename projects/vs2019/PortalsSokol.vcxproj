@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\source\application.cpp" />
+    <ClCompile Include="..\..\source\BaseApp.cpp" />
     <ClCompile Include="..\..\source\external\sokol.c" />
     <ClCompile Include="..\..\source\Main.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -25,6 +26,7 @@
     <ClCompile Include="..\..\source\Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\source\BaseApp.h" />
     <ClInclude Include="..\..\source\external\sokol_app.h" />
     <ClInclude Include="..\..\source\external\sokol_gfx.h" />
     <ClInclude Include="..\..\source\external\sokol_time.h" />
