@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\source\App.cpp" />
     <ClCompile Include="..\..\source\application.cpp" />
     <ClCompile Include="..\..\source\BaseApp.cpp" />
     <ClCompile Include="..\..\source\external\sokol.c" />
@@ -26,6 +27,7 @@
     <ClCompile Include="..\..\source\Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\source\App.h" />
     <ClInclude Include="..\..\source\BaseApp.h" />
     <ClInclude Include="..\..\source\external\sokol_app.h" />
     <ClInclude Include="..\..\source\external\sokol_gfx.h" />

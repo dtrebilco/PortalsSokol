@@ -10,6 +10,9 @@ class BaseApp
 {
 public:
 
+  ///  To be implemented by derived class
+  static BaseApp* CreateApp();
+
   BaseApp();
   virtual ~BaseApp();
 
@@ -18,6 +21,8 @@ public:
   
   virtual bool Load();
   virtual void DrawFrame() = 0;
+
+  void Controls(float frameTime);
 
 protected:
 

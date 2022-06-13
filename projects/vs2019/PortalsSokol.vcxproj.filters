@@ -10,6 +10,7 @@
     <ClCompile Include="..\..\source\application.cpp" />
     <ClCompile Include="..\..\source\Vector.cpp" />
     <ClCompile Include="..\..\source\BaseApp.cpp" />
+    <ClCompile Include="..\..\source\App.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\source\external\sokol_app.h">
@@ -28,6 +29,7 @@
     <ClInclude Include="..\..\source\ParticleSystem.h" />
     <ClInclude Include="..\..\source\Vector.h" />
     <ClInclude Include="..\..\source\BaseApp.h" />
+    <ClInclude Include="..\..\source\App.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="external">
