@@ -71,7 +71,7 @@ bool BaseApp::OnEvent(const sapp_event* ev) {
   return false;
 }
 
-void BaseApp::Controls(float frameTime) {
+void BaseApp::Controls() {
   // Compute directional vectors from euler angles
   float cosX = cosf(wx),
         sinX = sinf(wx),
@@ -93,7 +93,7 @@ void BaseApp::Controls(float frameTime) {
   if (lenSq > 0) {
     dir *= 1.0f / sqrtf(lenSq);
     float speed = 1000.0f; // DT_TODO:
-    camPos += dir * (frameTime * speed);
+    camPos += dir * (frame_time * speed);
   }
 }
 
@@ -106,6 +106,7 @@ static void init_userdata_cb(void* in_app) {
   BaseApp* app = (BaseApp*)in_app;
 
   sg_setup(sg_desc{ .context = sapp_sgcontext() });
+  stm_setup();
 
   //DT_TODO: Load UI assets
   app->Load();
@@ -115,9 +116,10 @@ static void init_userdata_cb(void* in_app) {
 static void frame_userdata_cb(void* in_app) {
   BaseApp* app = (BaseApp*)in_app;
   
-  // DT_TODO: Update delta time
-  
-  //app->Controls();
+  // Update delta time
+  app->frame_time = (float)stm_sec(stm_laptime(&app->time_ticks));
+
+  app->Controls();
   app->DrawFrame();
 
   //DT_TODO: Draw UI

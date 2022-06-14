@@ -22,9 +22,10 @@ public:
   virtual bool Load();
   virtual void DrawFrame() = 0;
 
-  void Controls(float frameTime);
-
-protected:
+  void Controls();
+ 
+  float frame_time = 0.0f;
+  uint64_t time_ticks = 0;
 
   vec3 camPos = vec3(470, 220, 210);
   float wx = 0;
