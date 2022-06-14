@@ -1,3 +1,5 @@
+#if 0
+
 #include "external/sokol_app.h"
 #include "external/sokol_gfx.h"
 #include "external/sokol_glue.h"
@@ -813,3 +815,5 @@ void main() {
 #else
 #error Unknown graphics plaform
 #endif
+
+#endif //0

@@ -107,6 +107,7 @@ static void init_userdata_cb(void* in_app) {
 
   sg_setup(sg_desc{ .context = sapp_sgcontext() });
   stm_setup();
+  app->start_ticks = stm_now();
 
   //DT_TODO: Load UI assets
   app->Load();
@@ -118,6 +119,7 @@ static void frame_userdata_cb(void* in_app) {
   
   // Update delta time
   app->frame_time = (float)stm_sec(stm_laptime(&app->time_ticks));
+  app->app_time   = (float)stm_sec(stm_diff(app->time_ticks, app->start_ticks));
 
   app->Controls();
   app->DrawFrame();
@@ -137,7 +139,7 @@ static void event_userdata_cb(const sapp_event* ev, void* in_app){
   BaseApp* app = (BaseApp*)in_app;
   app->OnEvent(ev);
 }
-/*
+
 sapp_desc sokol_main(int argc, char* argv[]) {
 
   // Create App
@@ -155,5 +157,5 @@ sapp_desc sokol_main(int argc, char* argv[]) {
       .window_title = "Portals",
   };
 }
-*/
+
 

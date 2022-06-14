@@ -3,6 +3,7 @@
 
 #include "Vector.h"
 #include <vector>
+#include "external/sokol_gfx.h"
 
 struct sapp_event;
 
@@ -24,7 +25,9 @@ public:
 
   void Controls();
  
+  float app_time = 0.0f;
   float frame_time = 0.0f;
+  uint64_t start_ticks = 0;
   uint64_t time_ticks = 0;
 
   vec3 camPos = vec3(470, 220, 210);
