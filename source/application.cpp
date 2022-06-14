@@ -3,6 +3,7 @@
 #include "external/sokol_glue.h"
 #include "external/sokol_time.h"
 
+#define STBI_ONLY_PNG
 #define STB_IMAGE_IMPLEMENTATION
 #include "external/stb_image.h"
 

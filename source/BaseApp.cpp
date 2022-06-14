@@ -102,7 +102,7 @@ bool BaseApp::Load() {
   return true;
 }
 
-void init_userdata_cb(void* in_app) {
+static void init_userdata_cb(void* in_app) {
   BaseApp* app = (BaseApp*)in_app;
 
   sg_setup(sg_desc{ .context = sapp_sgcontext() });
@@ -112,7 +112,7 @@ void init_userdata_cb(void* in_app) {
   app->ResetCamera();
 }
 
-void frame_userdata_cb(void* in_app) {
+static void frame_userdata_cb(void* in_app) {
   BaseApp* app = (BaseApp*)in_app;
   
   // DT_TODO: Update delta time
@@ -125,13 +125,13 @@ void frame_userdata_cb(void* in_app) {
   sg_commit();
 }
 
-void cleanup_userdata_cb(void* in_app) {
+static void cleanup_userdata_cb(void* in_app) {
   BaseApp* app = (BaseApp*)in_app;
   delete app;
   sg_shutdown();
 }
 
-void event_userdata_cb(const sapp_event* ev, void* in_app){
+static void event_userdata_cb(const sapp_event* ev, void* in_app){
   BaseApp* app = (BaseApp*)in_app;
   app->OnEvent(ev);
 }
