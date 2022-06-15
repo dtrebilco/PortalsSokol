@@ -107,7 +107,7 @@ static void init_userdata_cb(void* in_app) {
 
   sg_setup(sg_desc{ .context = sapp_sgcontext() });
   stm_setup();
-  app->start_ticks = stm_now();
+  app->start_ticks = stm_now(); // DT_TODO: Move this to start and report startup time?
 
   //DT_TODO: Load UI assets
   app->Load();

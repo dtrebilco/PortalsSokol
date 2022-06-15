@@ -30,9 +30,9 @@ public:
   uint64_t start_ticks = 0;
   uint64_t time_ticks = 0;
 
-  vec3 camPos = vec3(470, 220, 210);
+  vec3 camPos = {};
   float wx = 0;
-  float wy = PI / 2;
+  float wy = 0;
   float wz = 0;
 
   bool key_leftKey = false;
