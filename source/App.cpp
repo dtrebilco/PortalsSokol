@@ -135,7 +135,7 @@ void setValue(const char* dest, const unsigned int index, const AttributeFormat 
   }
 }
 
-bool findAttribute(Batch& batch, const AttributeType attType, const unsigned int index, unsigned int* where) {
+bool findAttribute(const Batch& batch, const AttributeType attType, const unsigned int index, unsigned int* where) {
   for (unsigned int i = 0; i < batch.formats.size(); i++) {
     if (batch.formats[i].attType == attType && batch.formats[i].index == index) {
       if (where != NULL) *where = i;
@@ -170,10 +170,47 @@ bool transform_batch(Batch& batch, const mat4& mat, const AttributeType attType,
   return true;
 }
 
-
 bool transform_model(Model& ret_model, const mat4& mat) {
   for (Batch& batch : ret_model.batches) {
     if (!transform_batch(batch, mat, ATT_VERTEX, 0)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool get_bounding_box(const Batch& batch, vec3& min, vec3& max) {
+
+  unsigned int attribIndex = 0;
+  if (!findAttribute(batch, ATT_VERTEX, 0, &attribIndex)) return false;
+  uint32_t size          = batch.formats[attribIndex].size;
+  AttributeFormat format = batch.formats[attribIndex].attFormat;
+  uint32_t offset        = batch.formats[attribIndex].offset;
+
+  if (size != 3) {
+    return false;
+  }
+
+  for (uint32_t i = 0; i < batch.nVertices; i++) {
+    char* src = batch.vertices + i * batch.vertexSize + offset;
+
+    for (uint32_t j = 0; j < size; j++) {
+      float val = getValue(src, j, format);
+      if (val > max[j]) max[j] = val;
+      if (val < min[j]) min[j] = val;
+    }
+  }
+
+  return true;
+}
+
+bool get_bounding_box(const Model& model, vec3& min, vec3& max) {
+
+  min = vec3(FLT_MAX);
+  max = vec3(-FLT_MAX);
+
+  for (const Batch& batch : model.batches) {
+    if (!get_bounding_box(batch, min, max)) {
       return false;
     }
   }
@@ -367,8 +404,8 @@ bool App::Load() {
   };
   pfx_particle = create_texture("data/Particle.png", pfx_imageDesc);
 
-  auto load_model = [](const char* filename, Model& model, vec3 offset) {
-    load_model_from_file(filename, model);
+  auto load_model = [](const char* filename, Sector& sector, vec3 offset) {
+    load_model_from_file(filename, sector.room);
 
     //mat4 mat(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
     //mat.translate(offset);
@@ -378,15 +415,18 @@ bool App::Load() {
       vec4(0.0, 0.0, 1.0, 0.0),
       vec4(offset, 1.0));
 
-    transform_model(model, mat);
-    make_model_renderable(model);
+    transform_model(sector.room, mat);
+
+    // Calculate min/max bounds
+    get_bounding_box(sector.room, sector.min, sector.max);
+    make_model_renderable(sector.room);
   };
 
-  load_model("data/room0.hmdl", sectors[0].room, vec3(0, 256, 0));
-  load_model("data/room0.hmdl", sectors[1].room, vec3(-384, 256, 3072));
-  load_model("data/room0.hmdl", sectors[2].room, vec3(1536, 256, 2688));
-  load_model("data/room0.hmdl", sectors[3].room, vec3(-1024, -768, 2688));
-  load_model("data/room0.hmdl", sectors[4].room, vec3(-2304, 256, 2688));
+  load_model("data/room0.hmdl", sectors[0], vec3(0, 256, 0));
+  load_model("data/room1.hmdl", sectors[1], vec3(-384, 256, 3072));
+  load_model("data/room2.hmdl", sectors[2], vec3(1536, 256, 2688));
+  load_model("data/room3.hmdl", sectors[3], vec3(-1024, -768, 2688));
+  load_model("data/room4.hmdl", sectors[4], vec3(-2304, 256, 2688));
 
   {
     sg_pipeline_desc roomPipDesc = {};
@@ -441,6 +481,23 @@ void App::DrawFrame() {
   mat4 proj = perspectiveMatrixX(1.5f, w, h, 0.1f, 6000);
   mat4 mv = rotateXY(-wx, -wy) * translate(-camPos);
 
+  unsigned int currSector = 0;
+  float minDist = 1e10f;
+
+  for (uint32_t i = 0; i < 5; i++) {
+    sectors[i].hasBeenDrawn = false;
+
+    // Works for this demo since all sectors have non-intersecting bounding boxes
+    // Real large-scale applications would have to implement more sophisticated
+    // ways to detect which sector the camera resides in.
+    //if (sectors[i]->isInBoundingBox(position)) currSector = i;
+    float d = sectors[i].getDistanceSqr(camPos);
+    if (d < minDist) {
+      currSector = i;
+      minDist = d;
+    }
+  }
+
   room_params.mvp = proj * mv;
   pfx_params.mvp = room_params.mvp;
 
@@ -482,13 +539,14 @@ void App::DrawFrame() {
   sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(room_params));
   for (int i = 0; i < 3; i++)
   {
+    const Batch& batch = sectors[currSector].room.batches[i];
     sg_bindings binding = {};
-    binding.index_buffer = sectors[0].room.batches[i].render_index;
-    binding.vertex_buffers[0] = sectors[0].room.batches[i].render_vertex;
+    binding.index_buffer = batch.render_index;
+    binding.vertex_buffers[0] = batch.render_vertex;
     binding.fs_images[0] = base[i];
     binding.fs_images[1] = bump[i];
     sg_apply_bindings(&binding);
-    sg_draw(0, sectors[0].room.batches[i].nIndices, 1);
+    sg_draw(0, batch.nIndices, 1);
   }
 
   if (pfxCount > 0)
