@@ -367,8 +367,6 @@ bool App::Load() {
   };
   pfx_particle = create_texture("data/Particle.png", pfx_imageDesc);
 
-  sg_image tex = create_texture("data/laying_rock7Bump.png", imageDesc);
-
   auto load_model = [](const char* filename, Model& model, vec3 offset) {
     load_model_from_file(filename, model);
 
