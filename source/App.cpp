@@ -382,11 +382,11 @@ bool App::Load() {
     make_model_renderable(model);
   };
 
-  load_model("data/room0.hmdl", models[0], vec3(0, 256, 0));
-  load_model("data/room0.hmdl", models[1], vec3(-384, 256, 3072));
-  load_model("data/room0.hmdl", models[2], vec3(1536, 256, 2688));
-  load_model("data/room0.hmdl", models[3], vec3(-1024, -768, 2688));
-  load_model("data/room0.hmdl", models[4], vec3(-2304, 256, 2688));
+  load_model("data/room0.hmdl", sectors[0].room, vec3(0, 256, 0));
+  load_model("data/room0.hmdl", sectors[1].room, vec3(-384, 256, 3072));
+  load_model("data/room0.hmdl", sectors[2].room, vec3(1536, 256, 2688));
+  load_model("data/room0.hmdl", sectors[3].room, vec3(-1024, -768, 2688));
+  load_model("data/room0.hmdl", sectors[4].room, vec3(-2304, 256, 2688));
 
   {
     sg_pipeline_desc roomPipDesc = {};
@@ -483,12 +483,12 @@ void App::DrawFrame() {
   for (int i = 0; i < 3; i++)
   {
     sg_bindings binding = {};
-    binding.index_buffer = models[0].batches[i].render_index;
-    binding.vertex_buffers[0] = models[0].batches[i].render_vertex;
+    binding.index_buffer = sectors[0].room.batches[i].render_index;
+    binding.vertex_buffers[0] = sectors[0].room.batches[i].render_vertex;
     binding.fs_images[0] = base[i];
     binding.fs_images[1] = bump[i];
     sg_apply_bindings(&binding);
-    sg_draw(0, models[0].batches[i].nIndices, 1);
+    sg_draw(0, sectors[0].room.batches[i].nIndices, 1);
   }
 
   if (pfxCount > 0)

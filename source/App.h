@@ -53,6 +53,63 @@ struct Model
   std::vector<Batch> batches;
 };
 
+struct Light {
+  ParticleSystem particles;
+
+  vec3 position = {};
+  float radius = 0.0f;
+  float xs = 0.0f, ys = 0.0f, zs = 0.0f;
+};
+
+struct Portal {
+  Portal(uint32_t sect, const vec3& vc0, const vec3& vc1, const vec3& vc2) {
+    sector = sect;
+    v0 = vc0;
+    v1 = vc1;
+    v2 = vc1 + vc2 - vc0;
+    v3 = vc2;
+  }
+
+  vec3 v0, v1, v2, v3;
+  uint32_t sector = 0;
+};
+
+class Sector {
+public:
+
+  inline bool isInBoundingBox(vec3& pos) const {
+    return (pos.x > min.x && pos.x < max.x&&
+      pos.y > min.y && pos.y < max.y&&
+      pos.z > min.z && pos.z < max.z);
+  }
+
+  inline bool isSphereInSector(const vec3& pos, const float radius) const {
+    return (getDistanceSqr(pos) < radius * radius);
+  }
+
+  inline float getDistanceSqr(const vec3& pos) const {
+    float s, d = 0;
+    for (int i = 0; i < 3; i++) {
+      if (pos[i] < min[i]) {
+        s = pos[i] - min[i];
+        d += s * s;
+      }
+      else if (pos[i] > max[i]) {
+        s = pos[i] - max[i];
+        d += s * s;
+      }
+    }
+    return d;
+  }
+
+
+  Model room;
+  std::vector<Portal> portals;
+  std::vector<Light> lights;
+
+  vec3 min, max;
+  bool hasBeenDrawn = false;
+};
 
 class App : public BaseApp
 {
@@ -64,7 +121,7 @@ public:
 
 protected:
 
-  Model models[5];
+  Sector sectors[5];
   ParticleSystem particles;
 
   sg_shader shader = {};
