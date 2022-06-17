@@ -54,15 +54,41 @@ struct Model
 };
 
 struct Light {
-  ParticleSystem particles;
 
+  Light(vec3 in_position, float in_radius,float in_xs, float in_ys, float in_zs)
+  : position(in_position)
+  , radius(in_radius)
+  , xs(in_xs)
+  , ys(in_ys)
+  , zs(in_zs)
+  {
+    particles.setSpawnRate(400);
+    particles.setSpeed(70, 20);
+    particles.setLife(3.0f, 0);
+    particles.setDirectionalForce(vec3(0, -10, 0));
+    particles.setFrictionFactor(0.95f);
+    //particles.setPosition(pos);
+    particles.setSize(15, 5);
+
+    for (unsigned int i = 0; i < 6; i++) {
+      particles.setColor(i, vec4(0.05f * i, 0.01f * i, 0, 0));
+      particles.setColor(6 + i, vec4(0.05f * 6, 0.05f * i + 0.06f, 0.02f * i, 0));
+    }
+  }
+
+  vec3 CalcLightOffset(float t, float j)
+  {
+    return vec3(xs * cosf(4.23f * t + j), ys * sinf(2.37f * t) * cosf(1.39f * t), zs * sinf(3.12f * t + j));
+  }
+
+  ParticleSystem particles;
   vec3 position = {};
   float radius = 0.0f;
   float xs = 0.0f, ys = 0.0f, zs = 0.0f;
 };
 
 struct Portal {
-  Portal(uint32_t sect, const vec3& vc0, const vec3& vc1, const vec3& vc2) {
+  inline Portal(uint32_t sect, const vec3& vc0, const vec3& vc1, const vec3& vc2) {
     sector = sect;
     v0 = vc0;
     v1 = vc1;
@@ -122,7 +148,6 @@ public:
 protected:
 
   Sector sectors[5];
-  ParticleSystem particles;
 
   sg_shader shader = {};
   sg_image base[3] = {};

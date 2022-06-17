@@ -316,19 +316,6 @@ bool App::Load() {
       .usage = SG_USAGE_STREAM
     });
 
-  particles.setSpawnRate(400);
-  particles.setSpeed(70, 20);
-  particles.setLife(3.0f, 0);
-  particles.setDirectionalForce(vec3(0, -10, 0));
-  particles.setFrictionFactor(0.95f);
-  //particles.setPosition(pos);
-  particles.setSize(15, 5);
-
-  for (unsigned int i = 0; i < 6; i++) {
-    particles.setColor(i, vec4(0.05f * i, 0.01f * i, 0, 0));
-    particles.setColor(6 + i, vec4(0.05f * 6, 0.05f * i + 0.06f, 0.02f * i, 0));
-  }
-
   // create an image 
   sg_image_desc imageDesc = {
     .min_filter = SG_FILTER_LINEAR_MIPMAP_NEAREST,
@@ -428,6 +415,36 @@ bool App::Load() {
   load_model("data/room3.hmdl", sectors[3], vec3(-1024, -768, 2688));
   load_model("data/room4.hmdl", sectors[4], vec3(-2304, 256, 2688));
 
+  // Setup portals
+  sectors[0].portals.push_back(Portal(1, vec3(-384, 384, 1024), vec3(-128, 384, 1024), vec3(-384, 0, 1024)));
+  sectors[1].portals.push_back(Portal(0, vec3(-384, 384, 1024), vec3(-128, 384, 1024), vec3(-384, 0, 1024)));
+
+  sectors[1].portals.push_back(Portal(2, vec3(512, 384, 2816), vec3(512, 384, 3072), vec3(512, 0, 2816)));
+  sectors[2].portals.push_back(Portal(1, vec3(512, 384, 2816), vec3(512, 384, 3072), vec3(512, 0, 2816)));
+
+  sectors[2].portals.push_back(Portal(3, vec3(512, -256, 2304), vec3(512, -256, 2560), vec3(512, -640, 2304)));
+  sectors[3].portals.push_back(Portal(2, vec3(512, -256, 2304), vec3(512, -256, 2560), vec3(512, -640, 2304)));
+
+  sectors[1].portals.push_back(Portal(4, vec3(-1280, 384, 1664), vec3(-1280, 384, 1920), vec3(-1280, 128, 1664)));
+  sectors[4].portals.push_back(Portal(1, vec3(-1280, 384, 1664), vec3(-1280, 384, 1920), vec3(-1280, 128, 1664)));
+
+  sectors[1].portals.push_back(Portal(4, vec3(-1280, 192, 3840), vec3(-1280, 192, 4096), vec3(-1280, -256, 3840)));
+  sectors[4].portals.push_back(Portal(1, vec3(-1280, 192, 3840), vec3(-1280, 192, 4096), vec3(-1280, -256, 3840)));
+
+  // Setup lights
+  sectors[0].lights.push_back(Light(vec3(0, 128, 0), 800, 100, 100, 100));
+
+  sectors[1].lights.push_back(Light(vec3(-256, 224, 1800), 650, 100, 80, 100));
+  sectors[1].lights.push_back(Light(vec3(-512, 128, 3100), 900, 100, 100, 300));
+
+  sectors[2].lights.push_back(Light(vec3(1300, 128, 2700), 800, 100, 100, 200));
+
+  sectors[3].lights.push_back(Light(vec3(-100, -700, 2432), 600, 50, 50, 50));
+  sectors[3].lights.push_back(Light(vec3(-1450, -700, 2900), 1200, 250, 80, 250));
+
+  sectors[4].lights.push_back(Light(vec3(-2200, 256, 2300), 800, 100, 100, 100));
+  sectors[4].lights.push_back(Light(vec3(-2000, 0, 4000), 800, 100, 100, 100));
+
   {
     sg_pipeline_desc roomPipDesc = {};
     roomPipDesc.layout.attrs[0] = { .offset = 0, .format = SG_VERTEXFORMAT_FLOAT3 }; // position
@@ -499,66 +516,66 @@ void App::DrawFrame() {
   }
 
   room_params.mvp = proj * mv;
-  pfx_params.mvp = room_params.mvp;
-
-  vec3 lightStartPos = vec3(0, 128, 0);
-  float xs = 100;
-  float ys = 100;
-  float zs = 100;
-  float t = app_time - 0.1f;
-  float j = 0;
-  vec3 p = vec3(xs * cosf(4.23f * t + j), ys * sinf(2.37f * t) * cosf(1.39f * t), zs * sinf(3.12f * t + j));
-
-  room_params.lightPos = vec4(lightStartPos + p, 1.0);
   room_params.camPos = vec4(camPos, 1.0);
-
-  t = app_time;
-  p = vec3(xs * cosf(4.23f * t + j), ys * sinf(2.37f * t) * cosf(1.39f * t), zs * sinf(3.12f * t + j));
-  particles.setPosition(lightStartPos + p);
-  particles.update(t);
+  pfx_params.mvp = room_params.mvp;
 
   vec3 dx(mv[0][0], mv[1][0], mv[2][0]);
   vec3 dy(mv[0][1], mv[1][1], mv[2][1]);
-
-  uint32_t pfxCount = particles.getParticleCount();
-  if (pfxCount > MAX_PFX_PARTICLES)
-  {
-    pfxCount = MAX_PFX_PARTICLES;
-  }
-  if (pfxCount > 0)
-  {
-    sg_update_buffer(pfx_vertex, sg_range{ .ptr = particles.getVertexArray(dx, dy), .size = pfxCount * PFX_VERTEX_SIZE * 4 });
-  }
 
   sg_pass_action pass_action = {};
   pass_action.colors[0] = { .action = SG_ACTION_CLEAR, .value = { 0.1f, 0.1f, 0.1f, 1.0f } };
 
   sg_begin_default_pass(&pass_action, (int)w, (int)h);
 
-  sg_apply_pipeline(room_pipline);
-  sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(room_params));
-  for (int i = 0; i < 3; i++)
+  for (int j = 0; j < sectors[currSector].lights.size(); j++)
   {
-    const Batch& batch = sectors[currSector].room.batches[i];
-    sg_bindings binding = {};
-    binding.index_buffer = batch.render_index;
-    binding.vertex_buffers[0] = batch.render_vertex;
-    binding.fs_images[0] = base[i];
-    binding.fs_images[1] = bump[i];
-    sg_apply_bindings(&binding);
-    sg_draw(0, batch.nIndices, 1);
+    Light& light = sectors[currSector].lights[j];
+    vec3 p = light.CalcLightOffset(app_time - 0.1f, j);
+
+    room_params.lightPos = vec4(light.position + p, 1.0);
+
+    sg_apply_pipeline(room_pipline);
+    sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(room_params));
+
+    for (int i = 0; i < 3; i++)
+    {
+      const Batch& batch = sectors[currSector].room.batches[i];
+      sg_bindings binding = {};
+      binding.index_buffer = batch.render_index;
+      binding.vertex_buffers[0] = batch.render_vertex;
+      binding.fs_images[0] = base[i];
+      binding.fs_images[1] = bump[i];
+      sg_apply_bindings(&binding);
+      sg_draw(0, batch.nIndices, 1);
+    }
   }
 
-  if (pfxCount > 0)
+  for (int j = 0; j < sectors[currSector].lights.size(); j++)
   {
-    sg_apply_pipeline(pfx_pipline);
-    sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(pfx_params));
-    sg_bindings binding = {};
-    binding.index_buffer = pfx_index;
-    binding.vertex_buffers[0] = pfx_vertex;
-    binding.fs_images[0] = pfx_particle;
-    sg_apply_bindings(&binding);
-    sg_draw(0, 6 * pfxCount, 1);
+    Light& light = sectors[currSector].lights[j];
+    vec3 p = light.CalcLightOffset(app_time, j);
+
+    ParticleSystem& particles = light.particles;
+    particles.setPosition(light.position + p);
+    particles.update(app_time);
+
+    uint32_t pfxCount = particles.getParticleCount();
+    if (pfxCount > MAX_PFX_PARTICLES)
+    {
+      pfxCount = MAX_PFX_PARTICLES;
+    }
+    if (pfxCount > 0)
+    {
+      sg_update_buffer(pfx_vertex, sg_range{ .ptr = particles.getVertexArray(dx, dy), .size = pfxCount * PFX_VERTEX_SIZE * 4 });
+      sg_apply_pipeline(pfx_pipline);
+      sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(pfx_params));
+      sg_bindings binding = {};
+      binding.index_buffer = pfx_index;
+      binding.vertex_buffers[0] = pfx_vertex;
+      binding.fs_images[0] = pfx_particle;
+      sg_apply_bindings(&binding);
+      sg_draw(0, 6 * pfxCount, 1);
+    }
   }
 
   sg_end_pass();
