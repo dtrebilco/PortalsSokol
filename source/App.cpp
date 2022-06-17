@@ -18,6 +18,13 @@ struct vs_room_params
   vec4 camPos;
 };
 
+struct fs_room_params
+{
+  float invlightRadius;
+  float ambient;
+  float dummy[2];
+};
+
 struct vs_pfx_params
 {
   mat4 mvp;
@@ -342,6 +349,11 @@ bool App::Load() {
 
     shaderDesc.fs.source = fs_src2;
     shaderDesc.fs.entry = "main";
+    shaderDesc.fs.uniform_blocks[0].size = 1 * 16;
+    shaderDesc.fs.uniform_blocks[0].layout = SG_UNIFORMLAYOUT_STD140;
+    shaderDesc.fs.uniform_blocks[0].uniforms[0].name = "fs_params";
+    shaderDesc.fs.uniform_blocks[0].uniforms[0].type = SG_UNIFORMTYPE_FLOAT4;
+    shaderDesc.fs.uniform_blocks[0].uniforms[0].array_count = 1;
     shaderDesc.fs.images[0].name = "Base";
     shaderDesc.fs.images[0].image_type = SG_IMAGETYPE_2D;
     shaderDesc.fs.images[0].sampler_type = SG_SAMPLERTYPE_FLOAT;
@@ -460,6 +472,15 @@ bool App::Load() {
     };
     roomPipDesc.cull_mode = SG_CULLMODE_BACK;
     room_pipline = sg_make_pipeline(roomPipDesc);
+
+    roomPipDesc.colors[0].blend = {
+        .enabled = true,
+        .src_factor_rgb = SG_BLENDFACTOR_ONE,
+        .dst_factor_rgb = SG_BLENDFACTOR_ONE,
+        .src_factor_alpha = SG_BLENDFACTOR_ONE,
+        .dst_factor_alpha = SG_BLENDFACTOR_ONE,
+    };
+    room_pipline_blend = sg_make_pipeline(roomPipDesc);
   }
 
   {
@@ -532,11 +553,20 @@ void App::DrawFrame() {
     Light& light = sectors[currSector].lights[j];
     vec3 p = light.CalcLightOffset(app_time - 0.1f, j);
 
+    fs_room_params room_params_fs{};
+    room_params_fs.invlightRadius = 1.0f / light.radius;
     room_params.lightPos = vec4(light.position + p, 1.0);
 
-    sg_apply_pipeline(room_pipline);
-    sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(room_params));
+    if (j == 0) {
+      room_params_fs.ambient = 0.07f;
+      sg_apply_pipeline(room_pipline);
+    }
+    else {
+      sg_apply_pipeline(room_pipline_blend);
+    }
 
+    sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(room_params));
+    sg_apply_uniforms(SG_SHADERSTAGE_FS, 0, SG_RANGE_REF(room_params_fs));
     for (int i = 0; i < 3; i++)
     {
       const Batch& batch = sectors[currSector].room.batches[i];
@@ -625,11 +655,7 @@ const char* fs_src2 = R"(
 uniform sampler2D Base;
 uniform sampler2D Bump;
 
-//uniform float invRadius;
-//uniform float ambient;
-
-float invRadius = 0.001250;
-float ambient = 0.07;
+uniform vec4 fs_params[1];
 
 in vec2 texCoord;
 in vec3 lightVec;
@@ -638,6 +664,10 @@ in vec3 viewVec;
 layout(location = 0) out vec4 frag_color;
 
 void main(){
+
+  float invRadius = fs_params[0].x;
+  float ambient = fs_params[0].y;
+
 	vec4 base = texture(Base, texCoord);
 	vec3 bump = texture(Bump, texCoord).xyz * 2.0 - 1.0;
 

@@ -153,6 +153,7 @@ protected:
   sg_image base[3] = {};
   sg_image bump[3] = {};
   sg_pipeline room_pipline = {};
+  sg_pipeline room_pipline_blend = {};
 
   sg_shader pfx_shader = {};
   sg_image pfx_particle = {};
