@@ -6,6 +6,7 @@
 #include "external/stb_image.h"
 
 const uint32_t MAX_PFX_PARTICLES = 1200;
+const uint32_t MAX_TOTAL_PARTICLES = MAX_PFX_PARTICLES * 3;
 const uint32_t PFX_VERTEX_SIZE = (4 * 3 + 4 * 2 + 4 * 4);
 
 extern const char* vs_src2, * fs_src2;
@@ -303,9 +304,9 @@ bool App::Load() {
 
   {
     std::vector<uint16_t> indices;
-    indices.resize(MAX_PFX_PARTICLES * 6);
+    indices.resize(MAX_TOTAL_PARTICLES * 6);
     uint16_t* dest = indices.data();
-    for (unsigned int i = 0; i < MAX_PFX_PARTICLES; i++) {
+    for (unsigned int i = 0; i < MAX_TOTAL_PARTICLES; i++) {
       *dest++ = 4 * i;
       *dest++ = 4 * i + 1;
       *dest++ = 4 * i + 3;
@@ -319,7 +320,7 @@ bool App::Load() {
       });
   }
   pfx_vertex = sg_make_buffer(sg_buffer_desc{
-      .size = MAX_PFX_PARTICLES * PFX_VERTEX_SIZE * 4,
+      .size = MAX_TOTAL_PARTICLES * PFX_VERTEX_SIZE * 4,
       .usage = SG_USAGE_STREAM
     });
 
@@ -580,6 +581,7 @@ void App::DrawFrame() {
     }
   }
 
+  uint32_t particleCount = 0;
   for (int j = 0; j < sectors[currSector].lights.size(); j++)
   {
     Light& light = sectors[currSector].lights[j];
@@ -594,18 +596,29 @@ void App::DrawFrame() {
     {
       pfxCount = MAX_PFX_PARTICLES;
     }
+    if ((particleCount + pfxCount) > MAX_TOTAL_PARTICLES)
+    {
+      pfxCount = MAX_TOTAL_PARTICLES - particleCount;
+    }
+
+    // Have an append buffer + render once
     if (pfxCount > 0)
     {
-      sg_update_buffer(pfx_vertex, sg_range{ .ptr = particles.getVertexArray(dx, dy), .size = pfxCount * PFX_VERTEX_SIZE * 4 });
-      sg_apply_pipeline(pfx_pipline);
-      sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(pfx_params));
-      sg_bindings binding = {};
-      binding.index_buffer = pfx_index;
-      binding.vertex_buffers[0] = pfx_vertex;
-      binding.fs_images[0] = pfx_particle;
-      sg_apply_bindings(&binding);
-      sg_draw(0, 6 * pfxCount, 1);
+      sg_append_buffer(pfx_vertex, sg_range{ .ptr = particles.getVertexArray(dx, dy), .size = pfxCount * PFX_VERTEX_SIZE * 4 });
+      particleCount += pfxCount;
     }
+  }
+
+  if (particleCount > 0)
+  {
+    sg_apply_pipeline(pfx_pipline);
+    sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(pfx_params));
+    sg_bindings binding = {};
+    binding.index_buffer = pfx_index;
+    binding.vertex_buffers[0] = pfx_vertex;
+    binding.fs_images[0] = pfx_particle;
+    sg_apply_bindings(&binding);
+    sg_draw(0, 6 * particleCount, 1);
   }
 
   sg_end_pass();

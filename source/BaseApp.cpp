@@ -158,4 +158,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
   };
 }
 
+// DT_TODO: Add mem tracking
+// DT_TODO: Add FPS graph
+// DT_TODO: Add ini file settings
 
