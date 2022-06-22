@@ -12,30 +12,25 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\source\App.cpp" />
-    <ClCompile Include="..\..\source\application.cpp" />
-    <ClCompile Include="..\..\source\BaseApp.cpp" />
-    <ClCompile Include="..\..\source\external\sokol.c" />
-    <ClCompile Include="..\..\source\Main.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\source\ParticleSystem.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\source\Portals.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="..\..\source\Vector.cpp" />
+    <ClCompile Include="..\..\source\framework\BaseApp.cpp" />
+    <ClCompile Include="..\..\source\framework\external\sokol.c" />
+    <ClCompile Include="..\..\source\framework\Image.cpp" />
+    <ClCompile Include="..\..\source\framework\Model.cpp" />
+    <ClCompile Include="..\..\source\framework\ParticleSystem.cpp" />
+    <ClCompile Include="..\..\source\framework\Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\source\App.h" />
-    <ClInclude Include="..\..\source\BaseApp.h" />
-    <ClInclude Include="..\..\source\external\sokol_app.h" />
-    <ClInclude Include="..\..\source\external\sokol_gfx.h" />
-    <ClInclude Include="..\..\source\external\sokol_time.h" />
-    <ClInclude Include="..\..\source\external\stb_image.h" />
-    <ClInclude Include="..\..\source\ParticleSystem.h" />
-    <ClInclude Include="..\..\source\Portals.h" />
-    <ClInclude Include="..\..\source\Vector.h" />
+    <ClInclude Include="..\..\source\framework\BaseApp.h" />
+    <ClInclude Include="..\..\source\framework\external\sokol_app.h" />
+    <ClInclude Include="..\..\source\framework\external\sokol_gfx.h" />
+    <ClInclude Include="..\..\source\framework\external\sokol_glue.h" />
+    <ClInclude Include="..\..\source\framework\external\sokol_time.h" />
+    <ClInclude Include="..\..\source\framework\external\stb_image.h" />
+    <ClInclude Include="..\..\source\framework\Image.h" />
+    <ClInclude Include="..\..\source\framework\Model.h" />
+    <ClInclude Include="..\..\source\framework\ParticleSystem.h" />
+    <ClInclude Include="..\..\source\framework\Vector.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
