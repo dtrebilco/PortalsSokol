@@ -209,6 +209,9 @@ mat4 scale(const float x, const float y, const float z){
 }
 
 mat4 perspectiveMatrixX(const float fov, const int width, const int height, const float zNear, const float zFar){
+  
+  // Left handed perspective, -1..1 in z, FOV for x 
+  // (like glm::perspectiveFovLH_NO, but FOV is in x)
   float w = cosf(0.5f * fov) / sinf(0.5f * fov);
   float h = (w * width) / height;
 
