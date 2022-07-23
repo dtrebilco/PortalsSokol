@@ -4,7 +4,7 @@
 #include "framework/external/sokol_app.h" // DT_TODO: Remove
 
 const uint32_t MAX_PFX_PARTICLES = 1200;
-const uint32_t MAX_TOTAL_PARTICLES = MAX_PFX_PARTICLES * 3;
+const uint32_t MAX_TOTAL_PARTICLES = MAX_PFX_PARTICLES * 5;
 const uint32_t PFX_VERTEX_SIZE = (4 * 3 + 4 * 2 + 4 * 4);
 
 extern const char* vs_src2, * fs_src2;
@@ -290,63 +290,92 @@ void App::DrawFrame() {
 
   sg_begin_default_pass(&pass_action, (int)w, (int)h);
 
-  for (int j = 0; j < sectors[currSector].lights.size(); j++)
-  {
-    Light& light = sectors[currSector].lights[j];
-    vec3 p = light.CalcLightOffset(app_time - 0.1f, j);
+  auto draw_sector = [&](uint32_t draw_index) {
 
-    fs_room_params room_params_fs{};
-    room_params_fs.invlightRadius = 1.0f / light.radius;
-    room_params.lightPos = vec4(light.position + p, 1.0);
-
-    if (j == 0) {
-      room_params_fs.ambient = 0.07f;
-      sg_apply_pipeline(room_pipline);
-    }
-    else {
-      sg_apply_pipeline(room_pipline_blend);
-    }
-
-    sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(room_params));
-    sg_apply_uniforms(SG_SHADERSTAGE_FS, 0, SG_RANGE_REF(room_params_fs));
-    for (int i = 0; i < 3; i++)
+    Sector& sector = sectors[draw_index];
+    sector.hasBeenDrawn = true;
+    for (int j = 0; j < sector.lights.size(); j++)
     {
-      const Batch& batch = sectors[currSector].room.batches[i];
-      sg_bindings binding = {};
-      binding.index_buffer = batch.render_index;
-      binding.vertex_buffers[0] = batch.render_vertex;
-      binding.fs_images[0] = base[i];
-      binding.fs_images[1] = bump[i];
-      sg_apply_bindings(&binding);
-      sg_draw(0, batch.nIndices, 1);
+      Light& light = sector.lights[j];
+      vec3 p = light.CalcLightOffset(app_time - 0.1f, float(j));
+
+      fs_room_params room_params_fs{};
+      room_params_fs.invlightRadius = 1.0f / light.radius;
+      room_params.lightPos = vec4(light.position + p, 1.0);
+
+      if (j == 0) {
+        room_params_fs.ambient = 0.07f;
+        sg_apply_pipeline(room_pipline);
+      }
+      else {
+        sg_apply_pipeline(room_pipline_blend);
+      }
+
+      sg_apply_uniforms(SG_SHADERSTAGE_VS, 0, SG_RANGE_REF(room_params));
+      sg_apply_uniforms(SG_SHADERSTAGE_FS, 0, SG_RANGE_REF(room_params_fs));
+      for (int i = 0; i < 3; i++)
+      {
+        const Batch& batch = sector.room.batches[i];
+        sg_bindings binding = {};
+        binding.index_buffer = batch.render_index;
+        binding.vertex_buffers[0] = batch.render_vertex;
+        binding.fs_images[0] = base[i];
+        binding.fs_images[1] = bump[i];
+        sg_apply_bindings(&binding);
+        sg_draw(0, batch.nIndices, 1);
+      }
+    }
+  };
+  draw_sector(currSector);
+
+  // Recurse throuygh portals
+  // DT_TODO: Determine if the portal bounds are visible
+  // Might just do a simple test if portal area is in camera frustum 
+  for (Portal& portal : sectors[currSector].portals)
+  {
+    if (!sectors[portal.sector].hasBeenDrawn)
+    {
+      draw_sector(portal.sector);
     }
   }
 
   uint32_t particleCount = 0;
-  for (int j = 0; j < sectors[currSector].lights.size(); j++)
+  for (Sector& sector : sectors)
   {
-    Light& light = sectors[currSector].lights[j];
-    vec3 p = light.CalcLightOffset(app_time, j);
-
-    ParticleSystem& particles = light.particles;
-    particles.setPosition(light.position + p);
-    particles.update(app_time);
-
-    uint32_t pfxCount = particles.getParticleCount();
-    if (pfxCount > MAX_PFX_PARTICLES)
+    if (sector.hasBeenDrawn)
     {
-      pfxCount = MAX_PFX_PARTICLES;
+      for (int j = 0; j < sector.lights.size(); j++)
+      {
+        Light& light = sector.lights[j];
+        vec3 p = light.CalcLightOffset(app_time, float(j));
+
+        ParticleSystem& particles = light.particles;
+        particles.setPosition(light.position + p);
+        particles.update(app_time);
+
+        uint32_t pfxCount = particles.getParticleCount();
+        if (pfxCount > MAX_PFX_PARTICLES)
+        {
+          pfxCount = MAX_PFX_PARTICLES;
+        }
+        if ((particleCount + pfxCount) > MAX_TOTAL_PARTICLES)
+        {
+          pfxCount = MAX_TOTAL_PARTICLES - particleCount;
+        }
+
+        // Have an append buffer + render once
+        if (pfxCount > 0)
+        {
+          sg_append_buffer(pfx_vertex, sg_range{ .ptr = particles.getVertexArray(dx, dy), .size = pfxCount * PFX_VERTEX_SIZE * 4 });
+          particleCount += pfxCount;
+        }
+      }
     }
-    if ((particleCount + pfxCount) > MAX_TOTAL_PARTICLES)
+    else
     {
-      pfxCount = MAX_TOTAL_PARTICLES - particleCount;
-    }
-
-    // Have an append buffer + render once
-    if (pfxCount > 0)
-    {
-      sg_append_buffer(pfx_vertex, sg_range{ .ptr = particles.getVertexArray(dx, dy), .size = pfxCount * PFX_VERTEX_SIZE * 4 });
-      particleCount += pfxCount;
+       for (unsigned int j = 0; j < sector.lights.size(); j++) {
+         sector.lights[j].particles.updateTime(app_time);
+       }
     }
   }
 
@@ -363,7 +392,6 @@ void App::DrawFrame() {
   }
 
   sg_end_pass();
-
 }
 
 #if defined(SOKOL_GLCORE33)
