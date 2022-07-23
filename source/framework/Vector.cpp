@@ -317,6 +317,7 @@ vec3 findAABBClosestPoint(const vec3 & a_point, const vec3& a_boxCenter, const v
 vec3 findPositionFromTransformMatrix(const mat4 & a_modelView)
 {
   // Get the 3 basis vector planes at the camera origin and transform them into model space.
+  // Other options here: https://community.khronos.org/t/extracting-camera-position-from-a-modelview-matrix/68031
   //  
   // NOTE: Planes have to be transformed by the inverse transpose of a matrix
   //       Nice reference here: http://www.opengl.org/discussion_boards/showthread.php/159564-Clever-way-to-transform-plane-by-matrix
