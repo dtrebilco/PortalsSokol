@@ -328,14 +328,45 @@ void App::DrawFrame() {
   };
   draw_sector(currSector);
 
-  // Recurse throuygh portals
-  // DT_TODO: Determine if the portal bounds are visible
-  // Might just do a simple test if portal area is in camera frustum 
+  // Recurse through portals- Determine if the portal bounds are visible
+  // Doing simple test if portal area is in camera frustum (original demo used queries with GL_SAMPLES_PASSED)
   for (Portal& portal : sectors[currSector].portals)
   {
     if (!sectors[portal.sector].hasBeenDrawn)
     {
-      draw_sector(portal.sector);
+      vec4 projPt[4];
+      for (uint32_t i = 0; i < 4; i++)
+      {
+        projPt[i] = room_params.mvp * vec4(portal.v[i], 1.0f);
+      }
+
+      // Cull in clip space
+      //  NOTE: Attempting to use Normalized Device Coordinates(NDC) causes issues when the portal intersects the near clip plane 
+      //        (w is positive and negative on different points)
+      bool cull = false;
+      for (uint32_t i = 0; i < 3; i++)
+      {
+        if (projPt[0][i] < -projPt[0].w &&
+            projPt[1][i] < -projPt[1].w &&
+            projPt[2][i] < -projPt[2].w &&
+            projPt[3][i] < -projPt[3].w)
+        {
+          cull = true;
+          break;
+        }
+        if (projPt[0][i] > projPt[0].w &&
+            projPt[1][i] > projPt[1].w &&
+            projPt[2][i] > projPt[2].w &&
+            projPt[3][i] > projPt[3].w)
+        {
+          cull = true;
+          break;
+        }
+      }
+      if (!cull)
+      {
+        draw_sector(portal.sector);
+      }
     }
   }
 

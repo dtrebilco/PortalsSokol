@@ -43,13 +43,13 @@ struct Light {
 struct Portal {
   inline Portal(uint32_t sect, const vec3& vc0, const vec3& vc1, const vec3& vc2) {
     sector = sect;
-    v0 = vc0;
-    v1 = vc1;
-    v2 = vc1 + vc2 - vc0;
-    v3 = vc2;
+    v[0] = vc0;
+    v[1] = vc1;
+    v[2] = vc1 + vc2 - vc0;
+    v[3] = vc2;
   }
 
-  vec3 v0, v1, v2, v3;
+  vec3 v[4];
   uint32_t sector = 0;
 };
 
