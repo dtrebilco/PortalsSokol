@@ -10,6 +10,13 @@ const uint32_t PFX_VERTEX_SIZE = (4 * 3 + 4 * 2 + 4 * 4);
 extern const char* vs_src2, * fs_src2;
 extern const char* vs_src_pfx, * fs_src_pfx;
 
+struct PFXBuffer
+{
+  vec3 pos;
+  vec2 tex;
+  vec4 color;
+};
+
 struct vs_room_params
 {
   mat4 mvp;
@@ -213,6 +220,7 @@ bool App::Load() {
         .write_enabled = true,
     };
     roomPipDesc.cull_mode = SG_CULLMODE_BACK;
+    //roomPipDesc.face_winding = SG_FACEWINDING_CCW;
     room_pipline = sg_make_pipeline(roomPipDesc);
 
     roomPipDesc.colors[0].blend = {
@@ -244,6 +252,7 @@ bool App::Load() {
         .dst_factor_alpha = SG_BLENDFACTOR_ONE,
     };
     pipDesc.cull_mode = SG_CULLMODE_BACK;
+    //pipDesc.face_winding = SG_FACEWINDING_CCW;
     pfx_pipline = sg_make_pipeline(pipDesc);
   }
 
@@ -257,6 +266,9 @@ void App::DrawFrame() {
 
   const int w = sapp_width(); // DT_TODO: Move to internal state
   const int h = sapp_height();
+
+  //mat4 proj = glm::tweakedInfinitePerspective(1.5, 1.0, 0.2);
+  //mat4 proj = glm::perspectiveFovLH_NO(1.5f, float(w), float(h), 0.1f, 6000.0f); // This is the same as perspectiveMatrixX, but the FOV is in height
 
   mat4 proj = perspectiveMatrixX(1.5f, w, h, 0.1f, 6000);
   mat4 mv = rotateXY(-wx, -wy) * translate(-camPos);
@@ -401,6 +413,27 @@ void App::DrawFrame() {
           particleCount += pfxCount;
         }
       }
+
+      /*
+      // Debug draw portals
+      for (Portal& portal : sectors[currSector].portals)
+      {
+        static vec2 coords[4] = { vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1) };
+      
+        PFXBuffer buffer[4] = {};
+        for (uint32_t i = 0; i < 4; i++)
+        {
+          buffer[i].pos = portal.v[i];
+          buffer[i].tex = coords[i];
+          buffer[i].color = vec4(1.0f, 1.0f, 1.0f, 0.5f);
+        }
+        if (particleCount < MAX_TOTAL_PARTICLES)
+        {
+          sg_append_buffer(pfx_vertex, sg_range{ .ptr = buffer, .size = PFX_VERTEX_SIZE * 4 });
+          particleCount += 1;
+        }
+      }
+      */
     }
     else
     {

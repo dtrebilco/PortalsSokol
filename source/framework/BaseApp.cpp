@@ -105,9 +105,9 @@ bool BaseApp::Load() {
 static void init_userdata_cb(void* in_app) {
   BaseApp* app = (BaseApp*)in_app;
 
+  printf("Startup time %f\n", stm_ms(stm_diff(stm_now(), app->start_ticks)));
+
   sg_setup(sg_desc{ .context = sapp_sgcontext() });
-  stm_setup();
-  app->start_ticks = stm_now(); // DT_TODO: Move this to start and report startup time?
 
   //DT_TODO: Load UI assets
   app->Load();
@@ -144,6 +144,8 @@ sapp_desc sokol_main(int argc, char* argv[]) {
 
   // Create App
   BaseApp* app = BaseApp::CreateApp();
+  stm_setup();
+  app->start_ticks = stm_now(); // DT_TODO: Move this to start and report startup time?
 
   return sapp_desc{
       .user_data = app,
