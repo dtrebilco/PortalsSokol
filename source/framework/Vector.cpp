@@ -431,3 +431,136 @@ bool findNearestChaserIntersection(const vec3& chaserPosition, const float chase
     return true;
 }
 
+// HOMOGENEOUS CLIPPING
+//Taken  from https://web.archive.org/web/20110528221654/http://wwwx.cs.unc.edu:80/~sud/courses/236/a5/softgl_homoclip_smooth.cpp
+
+inline bool Inside(const vec4& Point, CullPlane clippingPlane)
+{
+  switch (clippingPlane)
+  {
+  case CullPlane::Left:   return (Point.x >= -Point.w);
+  case CullPlane::Right:  return (Point.x <=  Point.w);
+  case CullPlane::Bottom: return (Point.y >= -Point.w);
+  case CullPlane::Top:    return (Point.y <=  Point.w);
+  case CullPlane::Near:   return (Point.z >= -Point.w);
+  case CullPlane::Far:    return (Point.z <=  Point.w);
+  }
+  return false;
+}
+
+inline vec4 Intersect(const vec4& v1, const vec4& v2, CullPlane clippingPlane)
+{
+  // find the parameter of intersection
+  // t = (v1_w-v1_x)/((v2_x - v1_x) - (v2_w - v1_w)) for x=w (RIGHT) plane
+  // ... and similar cases
+  float t = 0.0f;
+  switch (clippingPlane)
+  {
+  case CullPlane::Left:   t = (-v1.w - v1.x) / (v2.x - v1.x + v2.w - v1.w); break;
+  case CullPlane::Right:  t = ( v1.w - v1.x) / (v2.x - v1.x - v2.w + v1.w); break;
+  case CullPlane::Bottom: t = (-v1.w - v1.y) / (v2.y - v1.y + v2.w - v1.w); break;
+  case CullPlane::Top:    t = ( v1.w - v1.y) / (v2.y - v1.y - v2.w + v1.w); break;
+  case CullPlane::Near:   t = (-v1.w - v1.z) / (v2.z - v1.z + v2.w - v1.w); break;
+  case CullPlane::Far:    t = ( v1.w - v1.z) / (v2.z - v1.z - v2.w + v1.w); break;
+  };
+
+  return v1 + ((v2 - v1) * t);
+}
+
+
+void clipPolyToPlane(const std::vector<vec4>& a_inArray, std::vector<vec4 >& a_outArray, CullPlane a_clippingPlane)
+{
+  a_outArray.resize(0);
+  if (a_inArray.size() == 0)
+  {
+    return;
+  }
+
+  const vec4* LastPt = &a_inArray[a_inArray.size() - 1];
+  bool bLastIn = Inside(*LastPt, a_clippingPlane);
+
+  for (int32_t i = 0; i < a_inArray.size(); i++)
+  {
+    const vec4* Pt = &a_inArray[i];
+
+    bool bIn = Inside(*Pt, a_clippingPlane);
+    if (bIn != bLastIn)
+    {
+      a_outArray.push_back(Intersect(*LastPt, *Pt, a_clippingPlane));
+    }
+    if (bIn)
+    {
+      a_outArray.push_back(*Pt);
+    }
+
+    LastPt = Pt;
+    bLastIn = bIn;
+  }
+}
+
+
+bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_workingArray, uint32_t a_screenWidth, uint32_t a_screenHeight, uint32_t& o_startX, uint32_t& o_startY, uint32_t& o_width, uint32_t& o_height)
+{
+  clipPolyToPlane(a_inoutArray, a_workingArray, CullPlane::Left);
+  clipPolyToPlane(a_workingArray, a_inoutArray, CullPlane::Right);
+
+  clipPolyToPlane(a_inoutArray, a_workingArray, CullPlane::Bottom);
+  clipPolyToPlane(a_workingArray, a_inoutArray, CullPlane::Top);
+
+  clipPolyToPlane(a_inoutArray, a_workingArray, CullPlane::Near);
+  clipPolyToPlane(a_workingArray, a_inoutArray, CullPlane::Far);
+
+  if (a_inoutArray.size() == 0)
+  {
+    return false;
+  }
+
+  // Get the screen space extents of the points
+  float MinX = FLT_MAX;
+  float MaxX = -FLT_MAX;
+  float MinY = FLT_MAX;
+  float MaxY = -FLT_MAX;
+  for (const vec4& P : a_inoutArray)
+  {
+    // This divide check enables the point positions to OKish when not doing the clip to plane code above.
+    // Leaving here just to be sure.
+    float Div = P.w;
+    if (Div <= 0.0f)
+    {
+      Div = 0.000001f;
+    }
+
+    vec3 ProcessPoint = vec3(P.x, P.y, P.z) / Div;
+
+    ProcessPoint.x = ProcessPoint.x * 0.5f + 0.5f;
+    ProcessPoint.y = ProcessPoint.y * -0.5f + 0.5f;
+
+    ProcessPoint.x = clamp(ProcessPoint.x, 0.0f, 1.0f);
+    ProcessPoint.y = clamp(ProcessPoint.y, 0.0f, 1.0f);
+
+    ProcessPoint.x *= a_screenWidth;
+    ProcessPoint.y *= a_screenHeight;
+
+    MinX = min(MinX, ProcessPoint.x);
+    MaxX = max(MaxX, ProcessPoint.x);
+
+    MinY = min(MinY, ProcessPoint.y);
+    MaxY = max(MaxY, ProcessPoint.y);
+  }
+
+  o_startX = (uint32_t)floorf(MinX);
+  o_startY = (uint32_t)floorf(MinY);
+
+  // DT_TODO: This is exclusive - May have a off by one error? Handle bounds?
+  o_width  = ((uint32_t)ceilf(MaxX)) - o_startX;
+  o_height = ((uint32_t)ceilf(MaxY)) - o_startY;
+
+  // Abort if out of bounds or zero width
+  if (o_width == 0 ||
+      o_height == 0)
+  {
+    return false;
+  }
+
+  return true;
+}

@@ -23,6 +23,7 @@
 #define _VECTOR_H_
 
 #include <cstdint>
+#include <vector>
 
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -62,6 +63,16 @@ using glm::max;
 #include <limits.h>
 #include <float.h>
 
+enum class CullPlane
+{
+	Left,
+	Right,
+	Bottom,
+	Top,
+	Near,
+	Far
+};
+
 struct half {
 	unsigned short sh;
 
@@ -97,6 +108,12 @@ vec3 findPositionFromTransformMatrix(const mat4 & a_modelView);
 // Find intersection target point for a chaser chasing a target (constant velocities)
 bool findNearestChaserIntersectionTime(const vec3& chaserPosition, const float chaserSpeed, const vec3& targetPosition, const vec3& targetVelocity, float& retNearestTime);
 bool findNearestChaserIntersection(const vec3& chaserPosition, const float chaserSpeed, const vec3& targetPosition, const vec3& targetVelocity, vec3& retNearestPos);
+
+// Clip a polygon in Homogeneous coordinates agains a clipping plane 
+void clipPolyToPlane(const std::vector<vec4>& a_inArray, std::vector<vec4 >& a_outArray, CullPlane a_clippingPlane);
+
+// Get the screen area of a polygon in Homogeneous coordinates (alos returns the clipped polygon)
+bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_workingArray, uint32_t a_screenWidth, uint32_t a_screenHeight, uint32_t &o_startX, uint32_t& o_startY, uint32_t& o_width, uint32_t& o_height);
 
 vec3 rgbeToRGB(unsigned char *rgbe);
 unsigned int rgbToRGBE8(const vec3 &rgb);
