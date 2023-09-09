@@ -24,6 +24,7 @@
     <ClInclude Include="..\..\source\framework\BaseApp.h" />
     <ClInclude Include="..\..\source\framework\external\sokol_app.h" />
     <ClInclude Include="..\..\source\framework\external\sokol_gfx.h" />
+    <ClInclude Include="..\..\source\framework\external\sokol_gl.h" />
     <ClInclude Include="..\..\source\framework\external\sokol_glue.h" />
     <ClInclude Include="..\..\source\framework\external\sokol_time.h" />
     <ClInclude Include="..\..\source\framework\external\stb_image.h" />

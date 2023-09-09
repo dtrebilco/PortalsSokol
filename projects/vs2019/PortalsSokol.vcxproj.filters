@@ -53,6 +53,9 @@
     <ClInclude Include="..\..\source\framework\Image.h">
       <Filter>framework</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\source\framework\external\sokol_gl.h">
+      <Filter>framework\external</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="framework">
