@@ -1,7 +1,6 @@
 #include "BaseApp.h"
 
 #include "external/sokol_app.h"
-#include "external/sokol_gfx.h"
 #include "external/sokol_glue.h"
 #include "external/sokol_time.h"
 
@@ -108,7 +107,9 @@ static void init_userdata_cb(void* in_app) {
   printf("Startup time %f\n", stm_ms(stm_diff(stm_now(), app->start_ticks)));
 
   sg_setup(sg_desc{ .context = sapp_sgcontext() });
-
+#ifdef SOKOL_GL
+  sgl_setup(sgl_desc_t{});
+#endif // SOKOL_GL
   //DT_TODO: Load UI assets
   app->Load();
   app->ResetCamera();
@@ -132,6 +133,10 @@ static void frame_userdata_cb(void* in_app) {
 static void cleanup_userdata_cb(void* in_app) {
   BaseApp* app = (BaseApp*)in_app;
   delete app;
+
+#ifdef SOKOL_GL
+  sgl_shutdown();
+#endif // SOKOL_GL
   sg_shutdown();
 }
 

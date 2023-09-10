@@ -4,6 +4,7 @@
 #include "Vector.h"
 #include <vector>
 #include "external/sokol_gfx.h"
+#include "external/sokol_gl.h"
 
 struct sapp_event;
 
