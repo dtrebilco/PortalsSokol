@@ -352,7 +352,23 @@ void App::DrawFrame() {
         projPt[i] = room_params.mvp * vec4(portal.v[i], 1.0f);
       }
 
-      // Cull in clip space
+#ifdef SOKOL_GL
+      // Debug draw bounds
+      sgl_matrix_mode_modelview();
+      sgl_load_matrix(value_ptr(mv));
+      sgl_matrix_mode_projection();
+      sgl_load_matrix(value_ptr(proj));
+
+      sgl_begin_quads();
+      for (uint32_t i = 0; i < 4; i++)
+      {
+        sgl_v3f_c3f(portal.v[i].x, portal.v[i].y, portal.v[i].z, 1.0f, 0.0f, 0.0f);
+      }
+      sgl_end();
+      sgl_draw();
+#endif //SOKOL_GL
+
+      // Cull in clip space - cull against each six clip planes. Simple fast test- may still be offscreen if passing this test. (can clip corner)
       //  NOTE: Attempting to use Normalized Device Coordinates(NDC) causes issues when the portal intersects the near clip plane 
       //        (w is positive and negative on different points)
       bool cull = false;
@@ -375,6 +391,35 @@ void App::DrawFrame() {
           break;
         }
       }
+/*
+      if (!cull)
+      {
+        std::vector<vec4> inArray;
+        inArray.push_back(projPt[0]);
+        inArray.push_back(projPt[1]);
+        inArray.push_back(projPt[2]);
+        inArray.push_back(projPt[3]);
+
+        std::vector<vec4> workingBuffer;
+        {
+          uint32_t startX;
+          uint32_t startY;
+          uint32_t width;
+          uint32_t height;
+
+          if (!getPolyScreenArea(inArray, workingBuffer, w, h, startX, startY, width, height))
+          {
+            cull = true;
+          }
+          else
+          {
+            sg_apply_scissor_rect(startX, startY, width, height, true);
+            //glClear();
+
+          }
+        }
+      }
+*/
       if (!cull)
       {
         draw_sector(portal.sector);
