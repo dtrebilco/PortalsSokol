@@ -115,6 +115,9 @@ void clipPolyToPlane(const std::vector<vec4>& a_inArray, std::vector<vec4 >& a_o
 // Get the screen area of a polygon in Homogeneous coordinates (alos returns the clipped polygon)
 bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_workingArray, uint32_t a_screenWidth, uint32_t a_screenHeight, uint32_t &o_startX, uint32_t& o_startY, uint32_t& o_width, uint32_t& o_height);
 
+// Calculate an adjusted projection matrix to mimic a scissor area
+void applyScissorProjection(mat4& a_projection, uint32_t a_screenWidth, uint32_t a_screenHeight, uint32_t a_startX, uint32_t a_startY, uint32_t a_width, uint32_t a_height);
+
 vec3 rgbeToRGB(unsigned char *rgbe);
 unsigned int rgbToRGBE8(const vec3 &rgb);
 unsigned int rgbToRGB9E5(const vec3 &rgb);
