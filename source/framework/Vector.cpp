@@ -568,21 +568,19 @@ bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_wo
 
 void applyScissorProjection(mat4& a_projection, uint32_t a_screenWidth, uint32_t a_screenHeight, uint32_t a_startX, uint32_t a_startY, uint32_t a_width, uint32_t a_height)
 {
-  float DA_X = (float)a_startX / (float)a_screenWidth;
-  float DA_Y = (float)a_startY / (float)a_screenHeight;
-  float DA_Width = (float)a_width / (float)a_screenWidth;
-  float DA_Height = (float)a_height / (float)a_screenHeight;
+  float daX = (float)a_startX / (float)a_screenWidth;
+  float daY = (float)a_startY / (float)a_screenHeight;
+  float invWidth = (float)a_screenWidth / (float)a_width;
+  float invHeight = (float)a_screenHeight / (float)a_height;
 
-  float Inv_Width = 1.0f / DA_Width; // DT_TODO: Assign directly, fix naming
-  float Inv_Height = 1.0f / DA_Height;
-  float Tx = (1.0f - (2.0f * DA_X)) * Inv_Width - 1.0f;
-  float Ty = (-1.0f + (2.0f * DA_Y)) * Inv_Height + 1.0f;
+  float Tx = (1.0f - (2.0f * daX)) * invWidth - 1.0f;
+  float Ty = (-1.0f + (2.0f * daY)) * invHeight + 1.0f;
 
-  mat4 adjustMat(vec4(Inv_Width, 0, 0, 0),
-                 vec4(0, Inv_Height, 0, 0),
+  mat4 adjustMat(vec4(invWidth, 0, 0, 0),
+                 vec4(0, invHeight, 0, 0),
                  vec4(0, 0, 1, 0),
                  vec4(Tx, Ty, 0, 1));
 
-  a_projection = a_projection * adjustMat;
+  a_projection = adjustMat * a_projection;
 }
 
