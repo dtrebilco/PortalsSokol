@@ -397,6 +397,7 @@ void App::DrawFrame() {
         }
         else
         {
+          // Scissor drawing area (minor optimization)
           sg_apply_scissor_rect(startX, startY, width, height, true);
 
 #ifdef SOKOL_GL
@@ -442,6 +443,9 @@ void App::DrawFrame() {
     }
   }
 
+  // Reset scissor from portal geometry drawing
+  sg_apply_scissor_rect(0, 0, w, h, true);
+
   uint32_t particleCount = 0;
   for (Sector& sector : sectors)
   {
@@ -473,27 +477,6 @@ void App::DrawFrame() {
           particleCount += pfxCount;
         }
       }
-
-      /*
-      // Debug draw portals
-      for (Portal& portal : sectors[currSector].portals)
-      {
-        static vec2 coords[4] = { vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1) };
-      
-        PFXBuffer buffer[4] = {};
-        for (uint32_t i = 0; i < 4; i++)
-        {
-          buffer[i].pos = portal.v[i];
-          buffer[i].tex = coords[i];
-          buffer[i].color = vec4(1.0f, 1.0f, 1.0f, 0.5f);
-        }
-        if (particleCount < MAX_TOTAL_PARTICLES)
-        {
-          sg_append_buffer(pfx_vertex, sg_range{ .ptr = buffer, .size = PFX_VERTEX_SIZE * 4 });
-          particleCount += 1;
-        }
-      }
-      */
     }
     else
     {
