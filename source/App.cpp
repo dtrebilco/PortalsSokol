@@ -352,22 +352,6 @@ void App::DrawFrame() {
         projPt[i] = room_params.mvp * vec4(portal.v[i], 1.0f);
       }
 
-#ifdef SOKOL_GL
-      // Debug draw bounds
-      sgl_matrix_mode_modelview();
-      sgl_load_matrix(value_ptr(mv));
-      sgl_matrix_mode_projection();
-      sgl_load_matrix(value_ptr(proj));
-
-      sgl_begin_quads();
-      for (uint32_t i = 0; i < 4; i++)
-      {
-        sgl_v3f_c3f(portal.v[i].x, portal.v[i].y, portal.v[i].z, 1.0f, 0.0f, 0.0f);
-      }
-      sgl_end();
-      sgl_draw();
-#endif //SOKOL_GL
-
       // Cull in clip space - cull against each six clip planes. Simple fast test- may still be offscreen if passing this test. (can clip corner)
       //  NOTE: Attempting to use Normalized Device Coordinates(NDC) causes issues when the portal intersects the near clip plane 
       //        (w is positive and negative on different points)
@@ -391,35 +375,66 @@ void App::DrawFrame() {
           break;
         }
       }
-/*
+
       if (!cull)
       {
-        std::vector<vec4> inArray;
-        inArray.push_back(projPt[0]);
-        inArray.push_back(projPt[1]);
-        inArray.push_back(projPt[2]);
-        inArray.push_back(projPt[3]);
+        workingBuffer1.resize(0);
+        workingBuffer2.resize(0);
 
-        std::vector<vec4> workingBuffer;
+        workingBuffer1.push_back(projPt[0]);
+        workingBuffer1.push_back(projPt[1]);
+        workingBuffer1.push_back(projPt[2]);
+        workingBuffer1.push_back(projPt[3]);
+
+        uint32_t startX;
+        uint32_t startY;
+        uint32_t width;
+        uint32_t height;
+
+        if (!getPolyScreenArea(workingBuffer1, workingBuffer2, w, h, startX, startY, width, height))
         {
-          uint32_t startX;
-          uint32_t startY;
-          uint32_t width;
-          uint32_t height;
+          cull = true;
+        }
+        else
+        {
+          sg_apply_scissor_rect(startX, startY, width, height, true);
 
-          if (!getPolyScreenArea(inArray, workingBuffer, w, h, startX, startY, width, height))
-          {
-            cull = true;
-          }
-          else
-          {
-            sg_apply_scissor_rect(startX, startY, width, height, true);
-            //glClear();
+#ifdef SOKOL_GL
+          // Debug draw scissor bounds
+          sgl_matrix_mode_modelview();
+          sgl_load_identity();
+          sgl_matrix_mode_projection();
+          sgl_load_identity();
+          sgl_ortho(0.0f, (float)w, 0.0f, (float)h, -1.0f, 1.0f);
 
+          sgl_scissor_rect(startX, startY, width, height, true);
+
+          sgl_begin_quads();
+          sgl_v3f_c3f(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+          sgl_v3f_c3f((float)w, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+          sgl_v3f_c3f((float)w, (float)h, 0.0f, 0.0f, 1.0f, 0.0f);
+          sgl_v3f_c3f(0.0f, (float)h, 0.0f, 0.0f, 1.0f, 0.0f);
+          sgl_end();
+
+          sgl_scissor_rect(0, 0, w, h, true);
+
+          // Debug draw portal bounds
+          sgl_matrix_mode_modelview();
+          sgl_load_matrix(value_ptr(mv));
+          sgl_matrix_mode_projection();
+          sgl_load_matrix(value_ptr(proj));
+
+          sgl_begin_quads();
+          for (uint32_t i = 0; i < 4; i++)
+          {
+            sgl_v3f_c3f(portal.v[i].x, portal.v[i].y, portal.v[i].z, 1.0f, 0.0f, 0.0f);
           }
+          sgl_end();
+#endif //SOKOL_GL
+
         }
       }
-*/
+
       if (!cull)
       {
         draw_sector(portal.sector);
@@ -499,6 +514,10 @@ void App::DrawFrame() {
     sg_apply_bindings(&binding);
     sg_draw(0, 6 * particleCount, 1);
   }
+
+#ifdef SOKOL_GL
+  sgl_draw();
+#endif //SOKOL_GL
 
   sg_end_pass();
 }

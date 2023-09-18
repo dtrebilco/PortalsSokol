@@ -115,6 +115,9 @@ protected:
   sg_buffer pfx_index = {};
   sg_buffer pfx_vertex = {};
 
+  std::vector<vec4> workingBuffer1;
+  std::vector<vec4> workingBuffer2;
+
 };
 
 
