@@ -524,44 +524,44 @@ bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_wo
   }
 
   // Get the screen space extents of the points
-  float MinX = FLT_MAX;
-  float MaxX = -FLT_MAX;
-  float MinY = FLT_MAX;
-  float MaxY = -FLT_MAX;
-  for (const vec4& P : a_inoutArray)
+  float minX = FLT_MAX;
+  float maxX = -FLT_MAX;
+  float minY = FLT_MAX;
+  float maxY = -FLT_MAX;
+  for (const vec4& inPoint : a_inoutArray)
   {
     // This divide check enables the point positions to OKish when not doing the clip to plane code above.
     // Leaving here just to be sure.
-    float Div = P.w;
+    float Div = inPoint.w;
     if (Div <= 0.0f)
     {
       Div = 0.000001f;
     }
 
-    vec3 ProcessPoint = vec3(P.x, P.y, P.z) / Div;
+    vec3 processPoint = vec3(inPoint.x, inPoint.y, inPoint.z) / Div;
 
-    ProcessPoint.x = ProcessPoint.x * 0.5f + 0.5f;
-    ProcessPoint.y = ProcessPoint.y * -0.5f + 0.5f; // Flipping Y, may not be desired in some orientations
+    processPoint.x = processPoint.x * 0.5f + 0.5f;
+    processPoint.y = processPoint.y * -0.5f + 0.5f; // Flipping Y, may not be desired in some orientations
 
-    ProcessPoint.x = clamp(ProcessPoint.x, 0.0f, 1.0f);
-    ProcessPoint.y = clamp(ProcessPoint.y, 0.0f, 1.0f);
+    processPoint.x = clamp(processPoint.x, 0.0f, 1.0f);
+    processPoint.y = clamp(processPoint.y, 0.0f, 1.0f);
 
-    ProcessPoint.x *= a_screenWidth;
-    ProcessPoint.y *= a_screenHeight;
+    processPoint.x *= a_screenWidth;
+    processPoint.y *= a_screenHeight;
 
-    MinX = min(MinX, ProcessPoint.x);
-    MaxX = max(MaxX, ProcessPoint.x);
+    minX = min(minX, processPoint.x);
+    maxX = max(maxX, processPoint.x);
 
-    MinY = min(MinY, ProcessPoint.y);
-    MaxY = max(MaxY, ProcessPoint.y);
+    minY = min(minY, processPoint.y);
+    maxY = max(maxY, processPoint.y);
   }
 
   // Clamp to pixel half centers (do not include a primitive that does not cross a pixel center)
-  int32_t startX = (int32_t)floorf(MinX + 0.5f);
-  int32_t startY = (int32_t)floorf(MinY + 0.5f);
+  int32_t startX = (int32_t)floorf(minX + 0.5f);
+  int32_t startY = (int32_t)floorf(minY + 0.5f);
 
-  int32_t endX = (int32_t)ceilf(MaxX - 0.5f);
-  int32_t endY = (int32_t)ceilf(MaxY - 0.5f);
+  int32_t endX = (int32_t)ceilf(maxX - 0.5f);
+  int32_t endY = (int32_t)ceilf(maxY - 0.5f);
 
   // Abort if out of bounds or zero width
   if (startX >= endX ||
