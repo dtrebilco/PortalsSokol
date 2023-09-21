@@ -498,17 +498,25 @@ void clipPolyToPlane(const std::vector<vec4>& a_inArray, std::vector<vec4 >& a_o
   }
 }
 
-
-bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_workingArray, uint32_t a_screenWidth, uint32_t a_screenHeight, uint32_t& o_startX, uint32_t& o_startY, uint32_t& o_width, uint32_t& o_height)
+// Could do a version that does not allocate by passing in triangles, but would do more culling work
+bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_workingArray, uint32_t a_screenWidth, uint32_t a_screenHeight, bool a_clipNearFar, uint32_t& o_startX, uint32_t& o_startY, uint32_t& o_width, uint32_t& o_height)
 {
+  o_startX = 0;
+  o_startY = 0;
+  o_width = 0;
+  o_height = 0;    
+    
   clipPolyToPlane(a_inoutArray, a_workingArray, CullPlane::Left);
   clipPolyToPlane(a_workingArray, a_inoutArray, CullPlane::Right);
 
   clipPolyToPlane(a_inoutArray, a_workingArray, CullPlane::Bottom);
   clipPolyToPlane(a_workingArray, a_inoutArray, CullPlane::Top);
 
-  clipPolyToPlane(a_inoutArray, a_workingArray, CullPlane::Near);
-  clipPolyToPlane(a_workingArray, a_inoutArray, CullPlane::Far);
+  if (a_clipNearFar)
+  {
+    clipPolyToPlane(a_inoutArray, a_workingArray, CullPlane::Near);
+    clipPolyToPlane(a_workingArray, a_inoutArray, CullPlane::Far);
+  }
 
   if (a_inoutArray.size() == 0)
   {
@@ -533,7 +541,7 @@ bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_wo
     vec3 ProcessPoint = vec3(P.x, P.y, P.z) / Div;
 
     ProcessPoint.x = ProcessPoint.x * 0.5f + 0.5f;
-    ProcessPoint.y = ProcessPoint.y * -0.5f + 0.5f;
+    ProcessPoint.y = ProcessPoint.y * -0.5f + 0.5f; // Flipping Y, may not be desired in some orientations
 
     ProcessPoint.x = clamp(ProcessPoint.x, 0.0f, 1.0f);
     ProcessPoint.y = clamp(ProcessPoint.y, 0.0f, 1.0f);
@@ -548,19 +556,25 @@ bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_wo
     MaxY = max(MaxY, ProcessPoint.y);
   }
 
-  o_startX = (uint32_t)floorf(MinX);
-  o_startY = (uint32_t)floorf(MinY);
+  // Clamp to pixel half centers (do not include a primitive that does not cross a pixel center)
+  int32_t startX = (int32_t)floorf(MinX + 0.5f);
+  int32_t startY = (int32_t)floorf(MinY + 0.5f);
 
-  // DT_TODO: This is exclusive - May have a off by one error? Handle bounds?
-  o_width  = ((uint32_t)ceilf(MaxX)) - o_startX;
-  o_height = ((uint32_t)ceilf(MaxY)) - o_startY;
+  int32_t endX = (int32_t)ceilf(MaxX - 0.5f);
+  int32_t endY = (int32_t)ceilf(MaxY - 0.5f);
 
   // Abort if out of bounds or zero width
-  if (o_width == 0 ||
-      o_height == 0)
+  if (startX >= endX ||
+      startY >= endY)
   {
     return false;
   }
+
+  o_startX = startX;
+  o_startY = startY;
+
+  o_width = endX - startX;
+  o_height = endY - startY;
 
   return true;
 }

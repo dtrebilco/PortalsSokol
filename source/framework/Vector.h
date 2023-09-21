@@ -112,8 +112,8 @@ bool findNearestChaserIntersection(const vec3& chaserPosition, const float chase
 // Clip a polygon in Homogeneous coordinates agains a clipping plane 
 void clipPolyToPlane(const std::vector<vec4>& a_inArray, std::vector<vec4 >& a_outArray, CullPlane a_clippingPlane);
 
-// Get the screen area of a polygon in Homogeneous coordinates (alos returns the clipped polygon)
-bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_workingArray, uint32_t a_screenWidth, uint32_t a_screenHeight, uint32_t &o_startX, uint32_t& o_startY, uint32_t& o_width, uint32_t& o_height);
+// Get the screen area of a polygon in Homogeneous coordinates (also returns the clipped polygon in source array)
+bool getPolyScreenArea(std::vector<vec4>& a_inoutArray, std::vector<vec4 >& a_workingArray, uint32_t a_screenWidth, uint32_t a_screenHeight, bool a_clipNearFar, uint32_t &o_startX, uint32_t& o_startY, uint32_t& o_width, uint32_t& o_height);
 
 // Calculate an adjusted projection matrix to mimic a scissor area
 void applyScissorProjection(mat4& a_projection, uint32_t a_screenWidth, uint32_t a_screenHeight, uint32_t a_startX, uint32_t a_startY, uint32_t a_width, uint32_t a_height);
