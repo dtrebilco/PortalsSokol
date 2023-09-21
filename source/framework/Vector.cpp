@@ -434,27 +434,27 @@ bool findNearestChaserIntersection(const vec3& chaserPosition, const float chase
 // HOMOGENEOUS CLIPPING
 //Taken  from https://web.archive.org/web/20110528221654/http://wwwx.cs.unc.edu:80/~sud/courses/236/a5/softgl_homoclip_smooth.cpp
 
-inline bool Inside(const vec4& Point, CullPlane clippingPlane)
+inline bool Inside(const vec4& a_point, CullPlane a_clippingPlane)
 {
-  switch (clippingPlane)
+  switch (a_clippingPlane)
   {
-  case CullPlane::Left:   return (Point.x >= -Point.w);
-  case CullPlane::Right:  return (Point.x <=  Point.w);
-  case CullPlane::Bottom: return (Point.y >= -Point.w);
-  case CullPlane::Top:    return (Point.y <=  Point.w);
-  case CullPlane::Near:   return (Point.z >= -Point.w);
-  case CullPlane::Far:    return (Point.z <=  Point.w);
+  case CullPlane::Left:   return (a_point.x >= -a_point.w);
+  case CullPlane::Right:  return (a_point.x <=  a_point.w);
+  case CullPlane::Bottom: return (a_point.y >= -a_point.w);
+  case CullPlane::Top:    return (a_point.y <=  a_point.w);
+  case CullPlane::Near:   return (a_point.z >= -a_point.w);
+  case CullPlane::Far:    return (a_point.z <=  a_point.w);
   }
   return false;
 }
 
-inline vec4 Intersect(const vec4& v1, const vec4& v2, CullPlane clippingPlane)
+inline vec4 Intersect(const vec4& v1, const vec4& v2, CullPlane a_clippingPlane)
 {
   // find the parameter of intersection
   // t = (v1_w-v1_x)/((v2_x - v1_x) - (v2_w - v1_w)) for x=w (RIGHT) plane
   // ... and similar cases
   float t = 0.0f;
-  switch (clippingPlane)
+  switch (a_clippingPlane)
   {
   case CullPlane::Left:   t = (-v1.w - v1.x) / (v2.x - v1.x + v2.w - v1.w); break;
   case CullPlane::Right:  t = ( v1.w - v1.x) / (v2.x - v1.x - v2.w + v1.w); break;
