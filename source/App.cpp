@@ -391,7 +391,7 @@ void App::DrawFrame() {
         uint32_t width;
         uint32_t height;
 
-        if (!getPolyScreenArea(workingBuffer1, workingBuffer2, w, h, startX, startY, width, height))
+        if (!getPolyScreenArea(workingBuffer1, workingBuffer2, w, h, false, startX, startY, width, height))
         {
           cull = true;
         }
