@@ -432,8 +432,7 @@ bool findNearestChaserIntersection(const vec3& chaserPosition, const float chase
 }
 
 // HOMOGENEOUS CLIPPING
-//Taken  from https://web.archive.org/web/20110528221654/http://wwwx.cs.unc.edu:80/~sud/courses/236/a5/softgl_homoclip_smooth.cpp
-
+//Taken from https://web.archive.org/web/20110528221654/http://wwwx.cs.unc.edu:80/~sud/courses/236/a5/softgl_homoclip_smooth.cpp
 inline bool Inside(const vec4& a_point, CullPlane a_clippingPlane)
 {
   switch (a_clippingPlane)
@@ -450,7 +449,7 @@ inline bool Inside(const vec4& a_point, CullPlane a_clippingPlane)
 
 inline vec4 Intersect(const vec4& v1, const vec4& v2, CullPlane a_clippingPlane)
 {
-  // find the parameter of intersection
+  // Find the parameter of intersection
   // t = (v1_w-v1_x)/((v2_x - v1_x) - (v2_w - v1_w)) for x=w (RIGHT) plane
   // ... and similar cases
   float t = 0.0f;
