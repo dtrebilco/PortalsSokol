@@ -344,7 +344,8 @@ void App::DrawFrame() {
   // Doing simple test if portal area is in camera frustum (original demo used queries with GL_SAMPLES_PASSED)
   for (Portal& portal : sectors[currSector].portals)
   {
-    if (!sectors[portal.sector].hasBeenDrawn)
+    // Cannot do this test if scissoring as there can be multiple portals into the sector - Perhaps disable scissoring if drawing multiple times is very slow?
+    //if (!sectors[portal.sector].hasBeenDrawn) 
     {
       vec4 projPt[4];
       for (uint32_t i = 0; i < 4; i++)
@@ -400,7 +401,8 @@ void App::DrawFrame() {
           // Scissor drawing area (minor optimization)
           sg_apply_scissor_rect(startX, startY, width, height, true);
 
-#ifdef SOKOL_GL
+#if 0
+//#ifdef SOKOL_GL
           // Debug draw scissor bounds
           sgl_matrix_mode_modelview();
           sgl_load_identity();
