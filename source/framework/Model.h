@@ -34,19 +34,19 @@ struct Format {
 
 struct Batch
 {
-  char* vertices;
-  char* indices;
+  std::vector<uint8_t> vertices;
+  std::vector<uint8_t> indices;
 
-  uint32_t nVertices;
-  uint32_t nIndices;
-  uint32_t vertexSize;
-  uint32_t indexSize;
+  uint32_t nVertices = 0;
+  uint32_t nIndices = 0;
+  uint32_t vertexSize = 0;
+  uint32_t indexSize = 0;
 
   std::vector<Format> formats;
-  PrimitiveType primitiveType;
+  PrimitiveType primitiveType = PRIM_TRIANGLES;
 
-  sg_buffer render_index;
-  sg_buffer render_vertex;
+  sg_buffer render_index = sg_buffer{ SG_INVALID_ID };
+  sg_buffer render_vertex = sg_buffer{ SG_INVALID_ID };
 };
 
 struct Model

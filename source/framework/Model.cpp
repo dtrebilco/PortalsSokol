@@ -1,6 +1,6 @@
 #include "Model.h"
 
-float getValue(const char* src, const unsigned int index, const AttributeFormat attFormat) {
+float getValue(const uint8_t* src, const unsigned int index, const AttributeFormat attFormat) {
   switch (attFormat) {
   case ATT_FLOAT:         return *(((float*)src) + index);
   case ATT_UNSIGNED_BYTE: return *(((unsigned char*)src) + index) * (1.0f / 255.0f);
@@ -9,7 +9,7 @@ float getValue(const char* src, const unsigned int index, const AttributeFormat 
   }
 }
 
-void setValue(const char* dest, const unsigned int index, const AttributeFormat attFormat, float value) {
+void setValue(const uint8_t* dest, const unsigned int index, const AttributeFormat attFormat, float value) {
   switch (attFormat) {
   case ATT_FLOAT:
     *(((float*)dest) + index) = value;
@@ -39,7 +39,7 @@ bool transform_batch(Batch& batch, const mat4& mat, const AttributeType attType,
   offset = batch.formats[offset].offset;
 
   for (i = 0; i < batch.nVertices; i++) {
-    char* src = batch.vertices + i * batch.vertexSize + offset;
+    uint8_t* src = batch.vertices.data() + i * batch.vertexSize + offset;
 
     vec4 vec(0, 0, 0, 1);
     for (j = 0; j < size; j++) {
@@ -76,7 +76,7 @@ bool get_bounding_box(const Batch& batch, vec3& min, vec3& max) {
   }
 
   for (uint32_t i = 0; i < batch.nVertices; i++) {
-    char* src = batch.vertices + i * batch.vertexSize + offset;
+    const uint8_t* src = batch.vertices.data() + i * batch.vertexSize + offset;
 
     for (uint32_t j = 0; j < size; j++) {
       float val = getValue(src, j, format);
@@ -114,26 +114,28 @@ void read_batch_from_file(FILE* file, Batch& batch) {
   batch.formats.resize(nFormats);
   fread(batch.formats.data(), nFormats * sizeof(Format), 1, file);
 
-  batch.vertices = new char[batch.nVertices * batch.vertexSize];
-  fread(batch.vertices, batch.nVertices * batch.vertexSize, 1, file);
+  batch.vertices.resize(batch.nVertices * batch.vertexSize);
+  fread(batch.vertices.data(), batch.vertices.size(), 1, file);
 
   if (batch.nIndices > 0) {
-    batch.indices = new char[batch.nIndices * batch.indexSize];
-    fread(batch.indices, batch.nIndices * batch.indexSize, 1, file);
+    batch.indices.resize(batch.nIndices * batch.indexSize);
+    fread(batch.indices.data(), batch.indices.size(), 1, file);
   }
-  else batch.indices = NULL;
+  else {
+    batch.indices.resize(0);
+  }
 }
 
 bool make_model_renderable(Model& ret_model) {
 
   for (Batch& batch : ret_model.batches) {
-    sg_range index_range = sg_range{ .ptr = batch.indices, .size = (batch.nIndices * batch.indexSize) };
+    sg_range index_range = sg_range{ .ptr = batch.indices.data(), .size = batch.indices.size() };
     batch.render_index = sg_make_buffer(sg_buffer_desc{
         .type = SG_BUFFERTYPE_INDEXBUFFER,
         .data = index_range,
       });
 
-    sg_range vertex_range = sg_range{ .ptr = batch.vertices, .size = (batch.nVertices * batch.vertexSize) };
+    sg_range vertex_range = sg_range{ .ptr = batch.vertices.data(), .size = batch.vertices.size() };
     batch.render_vertex = sg_make_buffer(sg_buffer_desc{
         .data = vertex_range,
       });
