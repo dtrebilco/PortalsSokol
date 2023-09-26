@@ -104,7 +104,7 @@ bool BaseApp::Load() {
 static void init_userdata_cb(void* in_app) {
   BaseApp* app = (BaseApp*)in_app;
 
-  printf("Startup time %f\n", stm_ms(stm_diff(stm_now(), app->start_ticks)));
+  //printf("Startup time %f\n", stm_ms(stm_diff(stm_now(), app->start_ticks)));
 
   sg_setup(sg_desc{ .context = sapp_sgcontext() });
 #ifdef SOKOL_GL
