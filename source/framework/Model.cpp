@@ -156,10 +156,9 @@ bool load_model_from_file(const char* fileName, Model& ret_model) {
   uint32_t nBatches;
   fread(&nBatches, sizeof(nBatches), 1, file);
 
-  for (unsigned int i = 0; i < nBatches; i++) {
-    Batch batch = {};
+  ret_model.batches.resize(nBatches);
+  for (Batch& batch : ret_model.batches) {
     read_batch_from_file(file, batch);
-    ret_model.batches.push_back(batch);
   }
 
   fclose(file);
