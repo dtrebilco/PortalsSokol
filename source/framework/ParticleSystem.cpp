@@ -47,16 +47,6 @@ ParticleSystem::ParticleSystem(){
 	particleCredit = 0;
 
 	rotate = false;
-
-	vertexArray = NULL;
-	vertexArraySize = 0;
-	indexArray = NULL;
-	indexArraySize = 0;
-}
-
-ParticleSystem::~ParticleSystem(){
-	delete vertexArray;
-	delete indexArray;
 }
 
 void ParticleSystem::setColorScheme(const COLOR_SCHEME colorScheme){
@@ -125,6 +115,7 @@ void ParticleSystem::update(const float timeStamp){
 	len = (int) particleCredit;
 	particleCredit -= len;
 
+	particles.reserve(particles.size() + len);
 	for (i = 0; i < len; i++){
 		initParticle(p);
 		particles.push_back(p);
@@ -174,35 +165,24 @@ void ParticleSystem::depthSort(const vec3 &pos, const vec3 &depthAxis){
 	//particles.sort(depthComp);
 }
 
-char *ParticleSystem::getVertexArray(const vec3 &dx, const vec3 &dy, bool useColors, bool tex3d){
+void ParticleSystem::getVertexArray(std::vector<uint8_t>& buffer, const vec3 &dx, const vec3 &dy, bool useColors, bool tex3d) const {
 	unsigned int vertexSize = sizeof(vec3) + sizeof(vec2);
 	if (useColors) vertexSize += sizeof(vec4);
 	if (tex3d) vertexSize += sizeof(float);
+
 	unsigned int size = (unsigned int)particles.size() * vertexSize * 4;
+	buffer.resize(size);
 
-	if (size > vertexArraySize){
-		delete vertexArray;
-		vertexArray = new char[size];
-		vertexArraySize = size;
-	}
-
-	fillVertexArray(vertexArray, dx, dy, useColors, tex3d);
-
-	return vertexArray;
+	fillVertexArray(buffer.data(), dx, dy, useColors, tex3d);
 }
 
-char *ParticleSystem::getPointSpriteArray(bool useColors){
+void ParticleSystem::getPointSpriteArray(std::vector<uint8_t>& buffer, bool useColors) const {
 	unsigned int vertexSize = sizeof(vec3) + sizeof(float);
 	if (useColors) vertexSize += sizeof(vec4);
 	unsigned int size = vertexSize * (unsigned int)particles.size();
+	buffer.resize(size);
 
-	if (size > vertexArraySize){
-		delete vertexArray;
-		vertexArray = new char[size];
-		vertexArraySize = size;
-	}
-
-	char *dest = vertexArray;
+	uint8_t *dest = buffer.data();
 	for (unsigned int i = 0; i < particles.size(); i++){
 		*(vec3 *) dest = particles[i].pos;
 		dest += sizeof(vec3);
@@ -220,25 +200,15 @@ char *ParticleSystem::getPointSpriteArray(bool useColors){
 			dest += sizeof(vec4);
 		}
 	}
-
-	return vertexArray;
 }
 
-unsigned short *ParticleSystem::getIndexArray(){
-	unsigned int size = (unsigned int)particles.size() * 6;
-
-	if (size > indexArraySize){
-		delete indexArray;
-		indexArray = new unsigned short[size];
-		indexArraySize = size;
-
-		fillIndexArray(indexArray);
-	}
-
-	return indexArray;
+void ParticleSystem::getIndexArray(std::vector<uint16_t>& buffer) const {
+	size_t size = particles.size() * 6;
+	buffer.resize(size);
+	fillIndexArray(buffer.data());
 }
 
-void ParticleSystem::fillVertexArray(char *dest, const vec3 &dx, const vec3 &dy, bool useColors, bool tex3d){
+void ParticleSystem::fillVertexArray(uint8_t *dest, const vec3 &dx, const vec3 &dy, bool useColors, bool tex3d) const {
 	static vec2 coords[4] = { vec2(0, 0), vec2(1, 0), vec2(1, 1), vec2(0, 1) };
 	vec3 vect[4] = { -dx + dy, dx + dy, dx - dy, -dx - dy };
 
@@ -289,8 +259,8 @@ void ParticleSystem::fillVertexArray(char *dest, const vec3 &dx, const vec3 &dy,
 	}
 }
 
-void ParticleSystem::fillInstanceVertexArray(char *dest){
-	Particle *part = particles.data();
+void ParticleSystem::fillInstanceVertexArray(uint8_t* dest) const{
+	const Particle *part = particles.data();
 	for (unsigned int i = 0; i < particles.size(); i++){
 		*(vec3 *) dest = part->pos;
 		dest += sizeof(vec3);
@@ -308,8 +278,8 @@ void ParticleSystem::fillInstanceVertexArray(char *dest){
 	}
 }
 
-void ParticleSystem::fillInstanceVertexArrayRange(vec4 *posAndSize, vec4 *color, const unsigned int start, unsigned int count){
-	Particle *part = particles.data() + start;
+void ParticleSystem::fillInstanceVertexArrayRange(vec4 *posAndSize, vec4 *color, const unsigned int start, unsigned int count) const{
+	const Particle *part = particles.data() + start;
 
 	for (unsigned int i = 0; i < count; i++){
 		*(vec3 *) posAndSize = part->pos;
@@ -326,7 +296,7 @@ void ParticleSystem::fillInstanceVertexArrayRange(vec4 *posAndSize, vec4 *color,
 	}
 }
 
-void ParticleSystem::fillIndexArray(unsigned short *dest){
+void ParticleSystem::fillIndexArray(uint16_t *dest) const{
 	for (unsigned int i = 0; i < particles.size(); i++){
 		*dest++ = 4 * i;
 		*dest++ = 4 * i + 1;

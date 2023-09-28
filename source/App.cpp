@@ -50,6 +50,10 @@ void App::ResetCamera() {
 
 bool App::Load() {
 
+  pfxBuffer.reserve(MAX_PFX_PARTICLES * 36 * 4);
+  workingBuffer1.reserve(8);
+  workingBuffer2.reserve(8);
+
   {
     std::vector<uint16_t> indices;
     indices.resize(MAX_TOTAL_PARTICLES * 6);
@@ -475,7 +479,8 @@ void App::DrawFrame() {
         // Have an append buffer + render once
         if (pfxCount > 0)
         {
-          sg_append_buffer(pfx_vertex, sg_range{ .ptr = particles.getVertexArray(dx, dy), .size = pfxCount * PFX_VERTEX_SIZE * 4 });
+          particles.getVertexArray(pfxBuffer, dx, dy);
+          sg_append_buffer(pfx_vertex, sg_range{ .ptr = pfxBuffer.data(), .size = pfxBuffer.size() });
           particleCount += pfxCount;
         }
       }

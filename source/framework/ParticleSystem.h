@@ -53,10 +53,9 @@ float random(float mean, float diff);
 class ParticleSystem {
 public:
 	ParticleSystem();
-	virtual ~ParticleSystem();
 
 	const vec3 &getPosition() const { return pos; }
-	unsigned int getParticleCount() const { return (int)particles.size(); }
+	uint32_t getParticleCount() const { return (uint32_t)particles.size(); }
 	void setPosition(const vec3 &position){ pos = position; }
 	void setSpawnRate(const float spawnrate){ spawnRate = spawnrate; }
 
@@ -89,14 +88,14 @@ public:
 	void updateTime(const float timeStamp);
 	void depthSort(const vec3 &pos, const vec3 &depthAxis);
 
-	char *getVertexArray(const vec3 &dx, const vec3 &dy, bool useColors = true, bool tex3d = false);
-	char *getPointSpriteArray(bool useColors = true);
-	unsigned short *getIndexArray();
+	void getVertexArray(std::vector<uint8_t>& buffer, const vec3 &dx, const vec3 &dy, bool useColors = true, bool tex3d = false) const;
+	void getPointSpriteArray(std::vector<uint8_t>& buffer, bool useColors = true) const;
+	void getIndexArray(std::vector<uint16_t>& buffer) const;
 
-	void fillVertexArray(char *dest, const vec3 &dx, const vec3 &dy, bool useColors = true, bool tex3d = false);
-	void fillInstanceVertexArray(char *dest);
-	void fillInstanceVertexArrayRange(vec4 *posAndSize, vec4 *color, const unsigned int start, unsigned int count);
-	void fillIndexArray(unsigned short *dest);
+	void fillVertexArray(uint8_t* dest, const vec3 &dx, const vec3 &dy, bool useColors = true, bool tex3d = false) const;
+	void fillInstanceVertexArray(uint8_t* dest) const;
+	void fillInstanceVertexArrayRange(vec4 *posAndSize, vec4 *color, const unsigned int start, unsigned int count) const;
+	void fillIndexArray(uint16_t *dest) const;
 
 protected:
 	virtual void initParticle(Particle &p);
@@ -109,7 +108,6 @@ protected:
 	float lastTime, particleCredit;
 
 	vec4 colors[12];
-
 	vec3 pos;
 
 	float spawnRate;
@@ -119,11 +117,6 @@ protected:
 	float frictionFactor;
 
 	bool rotate;
-
-	char *vertexArray;
-	unsigned int vertexArraySize;
-	unsigned short *indexArray;
-	unsigned int indexArraySize;
 };
 
 
