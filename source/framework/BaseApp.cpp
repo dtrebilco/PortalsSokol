@@ -5,6 +5,32 @@
 #include "external/sokol_time.h"
 
 
+#ifdef _DEBUG
+#include <crtdbg.h>
+
+long g_allocRequestCount = 0;
+long g_allocFreeCount = 0;
+int BaseAppAllocHook(int allocType, void* userData, size_t size, int blockType, long requestNumber, const unsigned char* filename, int lineNumber)
+{
+  if (allocType == _HOOK_ALLOC)
+  {
+    g_allocRequestCount++;
+  }
+  else if (allocType == _HOOK_REALLOC)
+  {
+    g_allocRequestCount++;
+    g_allocFreeCount++;
+  }
+  else
+  {
+    g_allocFreeCount++;
+  }
+  return true;
+}
+
+#endif
+
+
 BaseApp::BaseApp() {
 }
 
@@ -49,6 +75,16 @@ bool BaseApp::OnEvent(const sapp_event* ev) {
       ResetCamera();
     }
     break;
+
+  case SAPP_EVENTTYPE_ICONIFIED :
+  case SAPP_EVENTTYPE_UNFOCUSED :
+  case SAPP_EVENTTYPE_SUSPENDED :
+    key_forwardKey = false;
+    key_backwardKey = false;
+    key_leftKey = false;
+    key_rightKey = false;
+    break;
+
   default:
     break;
   }
@@ -147,6 +183,16 @@ static void event_userdata_cb(const sapp_event* ev, void* in_app){
 
 sapp_desc sokol_main(int argc, char* argv[]) {
 
+  //_CrtSetBreakAlloc(270);
+#ifdef _DEBUG
+  int flag = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG); // Get current flag
+  flag |= _CRTDBG_LEAK_CHECK_DF; // Turn on leak-checking bit
+//	flag |= _CRTDBG_CHECK_ALWAYS_DF; // Turn on CrtCheckMemory
+//	flag |= _CRTDBG_DELAY_FREE_MEM_DF;
+  _CrtSetDbgFlag(flag); // Set flag to the new value
+  _CrtSetAllocHook(BaseAppAllocHook);
+#endif
+
   // Create App
   BaseApp* app = BaseApp::CreateApp();
   stm_setup();
@@ -166,6 +212,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
 }
 
 // DT_TODO: Add mem tracking
-// DT_TODO: Add FPS graph
+// DT_TODO: Add FPS graph - put dots on when mem allocation occurs
+// integrate tag profiler?
 // DT_TODO: Add ini file settings
-
+// Add cap on PFX system
