@@ -140,13 +140,13 @@ bool App::Load() {
     pfx_shader = sg_make_shader(shaderDesc);
   }
 
-  base[0] = create_texture("data/Wood.png", imageDesc);
-  base[1] = create_texture("data/laying_rock7.png", imageDesc);
-  base[2] = create_texture("data/victoria.png", imageDesc);
+  base[0] = create_texture("data/Wood.png", loadBuffer, imageDesc);
+  base[1] = create_texture("data/laying_rock7.png", loadBuffer, imageDesc);
+  base[2] = create_texture("data/victoria.png", loadBuffer, imageDesc);
 
-  bump[0] = create_texture("data/Wood_N.png", imageDesc);
-  bump[1] = create_texture("data/laying_rock7_N.png", imageDesc);
-  bump[2] = create_texture("data/victoria_N.png", imageDesc);
+  bump[0] = create_texture("data/Wood_N.png", loadBuffer, imageDesc);
+  bump[1] = create_texture("data/laying_rock7_N.png", loadBuffer, imageDesc);
+  bump[2] = create_texture("data/victoria_N.png", loadBuffer, imageDesc);
 
   sg_image_desc pfx_imageDesc = {
     .min_filter = SG_FILTER_LINEAR_MIPMAP_NEAREST,
@@ -154,7 +154,7 @@ bool App::Load() {
     .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
     .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
   };
-  pfx_particle = create_texture("data/Particle.png", pfx_imageDesc);
+  pfx_particle = create_texture("data/Particle.png", loadBuffer, pfx_imageDesc);
 
   auto load_model = [](const char* filename, Sector& sector, vec3 offset) {
     load_model_from_file(filename, sector.room);

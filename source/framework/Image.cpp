@@ -27,7 +27,7 @@ int get_mipmap_count(int width, int height) {
   return i;
 }
 
-void build_mipmapRGBA8(unsigned char* dest, unsigned char* src, int width, int height) {
+void build_mipmapRGBA8(uint8_t* dest, uint8_t* src, int width, int height) {
   int xOff = (width < 2) ? 0 : 4;
   int yOff = (height < 2) ? 0 : width * 4;
 
@@ -44,7 +44,7 @@ void build_mipmapRGBA8(unsigned char* dest, unsigned char* src, int width, int h
   }
 }
 
-sg_image create_texture(const char* filename, const sg_image_desc& img_desc) {
+sg_image create_texture(const char* filename, std::vector<uint8_t>& loadbuffer, const sg_image_desc& img_desc) {
 
   sg_image_desc local_desc = img_desc;
   int texN = 0;
@@ -65,8 +65,22 @@ sg_image create_texture(const char* filename, const sg_image_desc& img_desc) {
     if (mip_count <= SG_MAX_MIPMAPS) {
       local_desc.num_mipmaps = mip_count;
 
+      // Calcuulate the required total size 
+      size_t totalSize = 0;
       int w = local_desc.width;
       int h = local_desc.height;
+      for (int i = 1; i < mip_count; i++) {
+        if (w > 1) { w >>= 1; }
+        if (h > 1) { h >>= 1; }
+        totalSize += size_t(w) * h * 4;
+      }
+
+      loadbuffer.resize(totalSize);
+      uint8_t* load_ptr = loadbuffer.data();
+
+      // Build mip-maps
+      w = local_desc.width;
+      h = local_desc.height;
       for (int i = 1; i < mip_count; i++) {
         int old_w = w;
         int old_h = h;
@@ -75,10 +89,11 @@ sg_image create_texture(const char* filename, const sg_image_desc& img_desc) {
         if (h > 1) { h >>= 1; }
 
         size_t newSize = size_t(w) * h * 4;
-        local_desc.data.subimage[0][i] = { .ptr = malloc(newSize), .size = newSize };
+        local_desc.data.subimage[0][i] = { .ptr = load_ptr, .size = newSize };
+        load_ptr += newSize;
 
-        build_mipmapRGBA8((unsigned char*)local_desc.data.subimage[0][i].ptr,
-          (unsigned char*)local_desc.data.subimage[0][i - 1].ptr, old_w, old_h);
+        build_mipmapRGBA8((uint8_t*)local_desc.data.subimage[0][i].ptr,
+                          (uint8_t*)local_desc.data.subimage[0][i - 1].ptr, old_w, old_h);
       }
     }
   }
@@ -86,12 +101,6 @@ sg_image create_texture(const char* filename, const sg_image_desc& img_desc) {
 
   sg_image tex = sg_make_image(local_desc);
   stbi_image_free(texData);
-
-  // Free allocated mipmaps
-  for (int i = 1; i < local_desc.num_mipmaps; i++)
-  {
-    free((void*)local_desc.data.subimage[0][i].ptr);
-  }
 
   return tex;
 }

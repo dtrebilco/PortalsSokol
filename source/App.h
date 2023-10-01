@@ -116,6 +116,7 @@ protected:
   sg_buffer pfx_vertex = {};
 
   std::vector<uint8_t> pfxBuffer;
+  std::vector<uint8_t> loadBuffer;
   std::vector<vec4> workingBuffer1;
   std::vector<vec4> workingBuffer2;
 
