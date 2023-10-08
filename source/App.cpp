@@ -480,7 +480,7 @@ void App::DrawFrame() {
         if (pfxCount > 0)
         {
           particles.getVertexArray(pfxBuffer, dx, dy);
-          sg_append_buffer(pfx_vertex, sg_range{ .ptr = pfxBuffer.data(), .size = pfxBuffer.size() });
+          sg_append_buffer(pfx_vertex, sg_range{ .ptr = pfxBuffer.data(), .size = pfxCount * PFX_VERTEX_SIZE * 4});
           particleCount += pfxCount;
         }
       }
