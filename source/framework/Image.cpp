@@ -8,13 +8,6 @@ bool is_power2(unsigned int v) {
   return v && ((v & (v - 1)) == 0);
 }
 
-bool is_mipmap_filter(sg_filter filter) {
-  return (filter == SG_FILTER_NEAREST_MIPMAP_NEAREST ||
-    filter == SG_FILTER_NEAREST_MIPMAP_LINEAR ||
-    filter == SG_FILTER_LINEAR_MIPMAP_NEAREST ||
-    filter == SG_FILTER_LINEAR_MIPMAP_LINEAR);
-}
-
 int get_mipmap_count(int width, int height) {
   int max = (width > height) ? width : height;
   int i = 0;
@@ -44,9 +37,9 @@ void build_mipmapRGBA8(uint8_t* dest, uint8_t* src, int width, int height) {
   }
 }
 
-sg_image create_texture(const char* filename, std::vector<uint8_t>& loadbuffer, const sg_image_desc& img_desc) {
+sg_image create_texture(const char* filename, std::vector<uint8_t>& loadbuffer, bool useMipmaps) {
 
-  sg_image_desc local_desc = img_desc;
+  sg_image_desc local_desc = {};
   int texN = 0;
   uint8_t* texData = stbi_load(filename, &local_desc.width, &local_desc.height, &texN, 4);
   if (texData == nullptr) {
@@ -57,7 +50,7 @@ sg_image create_texture(const char* filename, std::vector<uint8_t>& loadbuffer, 
 
   // Create mip maps if needed
   local_desc.data.subimage[0][0] = { .ptr = texData, .size = size_t(local_desc.width) * local_desc.height * 4 };
-  if (is_mipmap_filter(local_desc.min_filter) &&
+  if (useMipmaps &&
     is_power2(local_desc.width) &&
     is_power2(local_desc.height)) {
 
