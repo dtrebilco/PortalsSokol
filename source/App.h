@@ -102,12 +102,15 @@ protected:
 
   Sector sectors[5];
 
+  sg_sampler smp;
+
   sg_shader shader = {};
   sg_image base[3] = {};
   sg_image bump[3] = {};
   sg_pipeline room_pipline = {};
   sg_pipeline room_pipline_blend = {};
 
+  sg_sampler pfx_smp;
   sg_shader pfx_shader = {};
   sg_image pfx_particle = {};
   sg_pipeline pfx_pipline = {};
